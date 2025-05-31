@@ -1,6 +1,6 @@
-import { getDefaultConfig, TomoEVMKitProvider, darkTheme } from '@tomo-inc/tomo-evm-kit';
+import { getDefaultConfig, TomoEVMKitProvider } from '@tomo-inc/tomo-evm-kit';
 import { WagmiProvider } from 'wagmi';
-import { mainnet, polygon, optimism, arbitrum, base } from 'wagmi/chains';
+import {  storyAeneid  } from 'wagmi/chains';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@tomo-inc/tomo-evm-kit/wallets';
 import '@tomo-inc/tomo-evm-kit/styles.css';
@@ -20,7 +20,7 @@ const config = getDefaultConfig({
   clientId,
   appName: 'Rijista',
   projectId,
-  chains: [mainnet, polygon, optimism, arbitrum, base],
+  chains: [storyAeneid],
   ssr: true,
   wallets: [
     {
@@ -28,7 +28,7 @@ const config = getDefaultConfig({
       wallets: [
         metaMaskWallet,
         rainbowWallet,
-     
+        walletConnectWallet,
       ],
     },
   ],
@@ -41,14 +41,8 @@ function App() {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <TomoEVMKitProvider
-          theme={darkTheme({
-            accentColor: '#6366f1',
-            accentColorForeground: 'white',
-            borderRadius: 'medium',
-            overlayBlur: 'small',
-          })}
           modalSize="compact"
-          initialChain={mainnet}
+          initialChain={storyAeneid}
         >
           <div className="app">
             <Header />
