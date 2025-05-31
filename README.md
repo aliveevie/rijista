@@ -1,67 +1,82 @@
-# Story TypeScript SDK Examples
+# Rijista - IP Registration Platform
 
-## Get Started
+Rijista is a modern web application that enables creators and IP owners to register their intellectual property on the Story Protocol blockchain. This platform provides a user-friendly interface for managing and registering IP assets in a decentralized manner.
 
-1. Install the dependencies:
+## Overview
 
-    ```
-    npm install
-    ```
+Rijista simplifies the process of IP registration by providing:
+- A clean, intuitive user interface for IP registration
+- Integration with Story Protocol for blockchain-based IP management
+- Secure and transparent IP registration process
+- Easy tracking and management of registered IP assets
 
-2. Rename the `.env.example` file to `.env`
+## Features
 
-3. Add your Story Network Testnet wallet's private key to `.env` file:
+- **IP Registration**: Register your intellectual property on the blockchain
+- **User Authentication**: Secure login and registration system
+- **IP Management**: View and manage your registered IP assets
+- **Blockchain Integration**: Seamless integration with Story Protocol
+- **Transaction History**: Track all your IP registration activities
 
-    ```
-    WALLET_PRIVATE_KEY=<your_wallet_private_key>
-    ```
+## Technology Stack
 
-4. [REQUIRED FOR `register` and `register-custom` SCRIPTS] Go to [Pinata](https://pinata.cloud/) and create a new API key. Add the JWT to your `.env` file:
+- Frontend: React/TypeScript
+- Blockchain: Story Protocol
+- Authentication: Web3 wallet integration
+- Smart Contracts: Ethereum-based contracts for IP registration
 
-    ```
-    PINATA_JWT=<your_pinata_jwt>
-    ```
+## Getting Started
 
-5. [OPTIONAL] We have already configured a public SPG NFT collection for you (`0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc`). If you want to create your own collection for your IPs, create a new SPG NFT collection by running `npm run create-spg-collection` in your terminal.
+### Prerequisites
 
-    3a. Look at the console output, and copy the NFT contract address. Add that value as `SPG_NFT_CONTRACT_ADDRESS` to your `.env` file:
+- Node.js (v16 or higher)
+- MetaMask or compatible Web3 wallet
+- Ethereum account with testnet/mainnet access
 
-    ```
-    SPG_NFT_CONTRACT_ADDRESS=<your_spg_nft_contract_address>
-    ```
+### Installation
 
-    **NOTE: You will only have to do this one time. Once you create an SPG collection, you can run this script as many times as you'd like.**
+1. Clone the repository:
+```bash
+git clone https://github.com/aliveevie/rijista.git
+cd rijista
+```
 
-## Available Scripts
+2. Install dependencies:
+```bash
+npm install
+```
 
-Below are all of the available scripts to help you build on Story.
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Configure your environment variables
+```
 
-### Registration
+4. Start the development server:
+```bash
+npm run dev
+```
 
--   `register`: This mints an NFT and registers it in the same transaction, using a public SPG collection.
--   `register-custom`: This mints an NFT using a custom ERC-721 contract and then registers it in a separate transaction.
+## Usage
 
-### Licenses
+1. Connect your Web3 wallet
+2. Navigate to the registration page
+3. Fill in your IP details
+4. Submit the registration transaction
+5. View your registered IP in the dashboard
 
--   `mint-license`: Mints a license token from an IP Asset.
--   `limit-license`: Registers a new IP and attaches license terms that only allow you to mint 1 license token. This is an example for limiting the amount of licenses you can mint.
+## Contributing
 
-### Royalty
+Contributions are welcome! Please feel free to submit a Pull Request.
 
--   `pay-revenue`: This is an example of registering a derivative, paying the derivative, and then allowing derivative and parent to claim their revenues.
--   `license-revenue`: This is an example of registering a derivative, minting a paid license from the derivative, and then allowing derivative and parent to claim their revenues.
--   `transfer-royalty-tokens`: This shows you how to transfer Royalty Tokens from an IP Account to any external wallet. Royalty Tokens are used to claim a % of revenue from an IP Asset.
+## License
 
-### Derivative
+This project is licensed under the MIT License - see the LICENSE file for details.
 
--   `derivative-commercial`: This mints an NFT and registers it as a derivative of an IP Asset in the same transaction, using a public SPG collection. It costs 1 $WIP to register as derivative and also includes an example of the parent claiming its revenue.
--   `derivative-non-commercial`: This mints an NFT and registesr it as a derivative of an IP Asset in the same transaction, using a public SPG collection. It's free to register as derivative.
--   `derivative-commercial-custom`: This mints an NFT using a custom ERC-721 contract and then registers it as a derivative of an IP Asset in a separate transaction. It costs 1 $WIP to register as derivative and also includes an example of the parent claiming its revenue.
+## Support
 
-### Dispute
+For support, please open an issue in the GitHub repository or contact the development team.
 
--   `dispute`: This disputes an IP Asset.
+---
 
-### Misc
-
--   `send-raw-transaction`: An example of sending a transaction using viem's `encodeFunctionData`.
+Built with ❤️ for the decentralized IP ecosystem 
