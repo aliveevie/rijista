@@ -48,13 +48,7 @@ function App() {
           <div className="app">
             <Header />
             <ModalHider />
-            <main className="main-content">
-              <div className="bg-blue-500 text-white p-4 rounded mb-4">
-                If you see a blue box, Tailwind CSS is working!
-              </div>
-              <div className="bg-red-500 text-white text-3xl font-bold text-center p-6 mb-4">
-                TAILWIND TEST: This should be a big red box!
-              </div>
+            <main>
               <Hero />
             </main>
           </div>
