@@ -5,6 +5,7 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@tomo-inc/tomo-evm-kit/wallets';
 import '@tomo-inc/tomo-evm-kit/styles.css';
 import Header from './components/Header/Header';
+import ModalHider from './components/ModalHider';
 import './App.css';
 
 // Ensure environment variables are defined
@@ -27,7 +28,7 @@ const config = getDefaultConfig({
       wallets: [
         metaMaskWallet,
         rainbowWallet,
-        walletConnectWallet,
+     
       ],
     },
   ],
@@ -51,6 +52,7 @@ function App() {
         >
           <div className="app">
             <Header />
+            <ModalHider />
             <main className="main-content">
               {/* Main content goes here */}
             </main>
