@@ -1,5 +1,5 @@
 import React from 'react';
-import WalletConnectButton from '../WalletConnectButton/WalletConnectButton';
+import { ConnectButton } from '@tomo-inc/tomo-evm-kit';
 import './Header.css';
 
 const Header: React.FC = () => (
@@ -20,7 +20,7 @@ const Header: React.FC = () => (
           </ul>
         </nav>
         <div className="wallet-connect-container">
-          <WalletConnectButton />
+          <ConnectButton />
         </div>
       </div>
     </div>
