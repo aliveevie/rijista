@@ -11,7 +11,16 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       // Expose env variables to your app
-      'process.env': env
+      'process.env': env,
+      global: 'window',
+    },
+    optimizeDeps: {
+      include: ['buffer'],
+    },
+    resolve: {
+      alias: {
+        buffer: 'buffer',
+      },
     },
     server: {
       port: 3000,
