@@ -6,6 +6,7 @@ import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@tomo-inc/to
 import '@tomo-inc/tomo-evm-kit/styles.css';
 import Header from './components/Header/Header';
 import ModalHider from './components/ModalHider';
+import Hero from './components/Hero/Hero';
 import './App.css';
 
 // Ensure environment variables are defined
@@ -48,7 +49,13 @@ function App() {
             <Header />
             <ModalHider />
             <main className="main-content">
-              {/* Main content goes here */}
+              <div className="bg-blue-500 text-white p-4 rounded mb-4">
+                If you see a blue box, Tailwind CSS is working!
+              </div>
+              <div className="bg-red-500 text-white text-3xl font-bold text-center p-6 mb-4">
+                TAILWIND TEST: This should be a big red box!
+              </div>
+              <Hero />
             </main>
           </div>
         </TomoEVMKitProvider>
