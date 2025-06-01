@@ -28,10 +28,17 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  /* Add global gradient and grid background */
+  background: linear-gradient(135deg, #0A0F1C 0%, #181F36 50%, #1B0F2B 100%),
+    linear-gradient(rgba(10,15,28,0.85),rgba(10,15,28,0.85)), url('/grid.svg');
+  background-blend-mode: normal, normal;
+  background-size: cover, cover, cover;
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-position: center, center, center;
+  position: relative;
+  overflow-x: hidden;
 }
 
 h1 {
