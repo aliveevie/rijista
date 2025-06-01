@@ -7,6 +7,9 @@ import '@tomo-inc/tomo-evm-kit/styles.css';
 import Header from './components/Header/Header';
 import ModalHider from './components/ModalHider';
 import Hero from './components/Hero/Hero';
+import RijistaHero from './components/RijistaHero/RijistaHero';
+import RijistaFeatures from './components/RijistaFeatures/RijistaFeatures';
+import RijistaMarketplace from './components/RijistaMarketplace/RijistaMarketplace';
 import './App.css';
 
 // Ensure environment variables are defined
@@ -50,6 +53,9 @@ function App() {
             <ModalHider />
             <main>
               <Hero />
+              <RijistaHero />
+              <RijistaFeatures />
+              <RijistaMarketplace />
             </main>
           </div>
         </TomoEVMKitProvider>
