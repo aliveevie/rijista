@@ -12,6 +12,7 @@ import RijistaHero from './components/RijistaHero/RijistaHero';
 import RijistaFeatures from './components/RijistaFeatures/RijistaFeatures';
 import RijistaMarketplace from './components/RijistaMarketplace/RijistaMarketplace';
 import Register from './pages/Register/Register';
+import Footer from './components/Footer';
 import './App.css';
 
 // Ensure environment variables are defined
@@ -51,7 +52,7 @@ function App() {
           initialChain={storyAeneid}
         >
           <Router>
-            <div className="app">
+            <div className="app min-h-screen flex flex-col">
               <Header />
               <ModalHider />
               <Routes>
@@ -65,6 +66,7 @@ function App() {
                   </main>
                 } />
               </Routes>
+              <Footer />
             </div>
           </Router>
         </TomoEVMKitProvider>
