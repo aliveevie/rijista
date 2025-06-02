@@ -1,62 +1,85 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircleIcon, ShieldCheckIcon, GlobeAltIcon, CurrencyDollarIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, DocumentTextIcon, PhotoIcon, MusicalNoteIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { ConnectButton } from '@tomo-inc/tomo-evm-kit';
 import { useAccount } from 'wagmi';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8083/api';
 
-const benefits = [
+const registrationSteps = [
   {
-    icon: <CheckCircleIcon className="w-8 h-8 text-blue-400" />,
-    title: "Immutable Proof of Ownership",
-    desc: "Your IP is permanently recorded on-chain, providing indisputable proof of creation and ownership."
+    id: 1,
+    title: "IP Metadata",
+    description: "Register your IP's core metadata",
+    icon: <DocumentTextIcon className="w-6 h-6" />,
+    status: 'current'
   },
   {
-    icon: <GlobeAltIcon className="w-8 h-8 text-purple-400" />,
-    title: "Global Marketplace Exposure",
-    desc: "List your IP for discovery and licensing by creators, companies, and fans worldwide."
+    id: 2,
+    title: "NFT Metadata",
+    description: "Register your IP's NFT metadata",
+    icon: <PhotoIcon className="w-6 h-6" />,
+    status: 'upcoming'
   },
   {
-    icon: <SparklesIcon className="w-8 h-8 text-pink-400" />,
-    title: "Instant NFT Minting",
-    desc: "Mint an NFT that represents your IP, tradable and verifiable on the blockchain."
+    id: 3,
+    title: "IPFS Upload",
+    description: "Upload metadata to IPFS",
+    icon: <CloudArrowUpIcon className="w-6 h-6" />,
+    status: 'upcoming'
   },
   {
-    icon: <ShieldCheckIcon className="w-8 h-8 text-green-400" />,
-    title: "Decentralized & Secure",
-    desc: "No single point of failure. Your data is stored on IPFS and protected by blockchain technology."
-  },
-  {
-    icon: <CurrencyDollarIcon className="w-8 h-8 text-yellow-400" />,
-    title: "Earn Royalties Automatically",
-    desc: "Set your own terms and earn royalties every time your IP is used or remixed."
+    id: 4,
+    title: "NFT Creation",
+    description: "Create your IP's NFT representation",
+    icon: <MusicalNoteIcon className="w-6 h-6" />,
+    status: 'upcoming'
   }
 ];
+
+interface RegistrationState {
+  registrationId?: string;
+  error?: string;
+}
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
+  const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationState, setRegistrationState] = useState<RegistrationState>({});
   const [formData, setFormData] = useState({
+    // Step 1 - IP Metadata Fields
     title: '',
     description: '',
-    creatorName: '',
-    creatorAddress: '',
-    imageUrl: '',
+    createdAt: new Date().toISOString(),
+    creators: [{
+      name: '',
+      address: '' as `0x${string}`,
+      contributionPercent: 100,
+    }],
+    image: '',
     mediaUrl: '',
     mediaType: 'audio/mpeg',
+    // Step 2 - NFT Metadata Fields
+    nftName: '',
+    nftDescription: '',
+    nftImage: '',
+    animationUrl: '',
     attributes: [
-      { key: '', value: '' }
-    ]
+      { key: '', value: '' },
+    ],
   });
 
   useEffect(() => {
     if (isConnected && address) {
       setFormData(prev => ({
         ...prev,
-        creatorAddress: address
+        creators: [{
+          ...prev.creators[0],
+          address: address as `0x${string}`
+        }]
       }));
     }
   }, [isConnected, address]);
@@ -66,6 +89,16 @@ const Register: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleCreatorChange = (field: 'name' | 'contributionPercent', value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      creators: [{
+        ...prev.creators[0],
+        [field]: value
+      }]
     }));
   };
 
@@ -103,52 +136,364 @@ const Register: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
+    setRegistrationState(prev => ({ ...prev, error: undefined }));
+
     try {
-      setIsLoading(true);
+      switch (currentStep) {
+        case 1: {
+          const response = await axios.post(`${API_BASE_URL}/register`, {
+            step: 1,
+            data: {
+              title: formData.title,
+              description: formData.description,
+              createdAt: formData.createdAt,
+              creators: formData.creators,
+              image: formData.image,
+              mediaUrl: formData.mediaUrl,
+              mediaType: formData.mediaType
+            }
+          });
 
-      // Log the data being sent
-      console.log('Sending registration data:', formData);
+          if (response.data.success) {
+            const registrationId = response.data.data.registrationId;
+            setRegistrationState(prev => ({
+              ...prev,
+              registrationId
+            }));
+            setCurrentStep(2);
+          } else {
+            throw new Error(response.data.error || 'IP metadata registration failed');
+          }
+          break;
+        }
 
-      // Send registration request to our backend
-      const response = await axios.post(`${API_BASE_URL}/register-ip`, formData);
-      
-      // Log the response
-      console.log('Server response:', response.data);
+        case 2: {
+          if (!registrationState.registrationId) {
+            throw new Error('Registration ID not found. Please start over.');
+          }
 
-      if (response.data.success) {
-        alert('Registration successful! Check console for details.');
-        navigate('/success', { 
-          state: { 
-            ...response.data.data,
-            title: formData.title
-          } 
-        });
-      } else {
-        throw new Error(response.data.error || 'Registration failed');
+          const response = await axios.post(`${API_BASE_URL}/register`, {
+            step: 2,
+            data: {
+              registrationId: registrationState.registrationId,
+              nftName: formData.nftName,
+              nftDescription: formData.nftDescription,
+              nftImage: formData.nftImage,
+              animationUrl: formData.animationUrl,
+              attributes: formData.attributes
+            }
+          });
+
+          if (response.data.success) {
+            setCurrentStep(3);
+          } else {
+            throw new Error(response.data.error || 'NFT metadata registration failed');
+          }
+          break;
+        }
+
+        case 3: {
+          if (!registrationState.registrationId) {
+            throw new Error('Registration ID not found. Please start over.');
+          }
+
+          const response = await axios.post(`${API_BASE_URL}/register`, {
+            step: 3,
+            data: {
+              registrationId: registrationState.registrationId
+            }
+          });
+
+          if (response.data.success) {
+            setCurrentStep(4);
+          } else {
+            throw new Error(response.data.error || 'IPFS upload failed');
+          }
+          break;
+        }
+
+        case 4: {
+          if (!registrationState.registrationId) {
+            throw new Error('Registration ID not found. Please start over.');
+          }
+
+          const response = await axios.post(`${API_BASE_URL}/register`, {
+            step: 4,
+            data: {
+              registrationId: registrationState.registrationId
+            }
+          });
+
+          if (response.data.success) {
+            navigate('/success', {
+              state: {
+                registrationId: response.data.data.registrationId,
+                title: formData.title,
+                transactionHash: response.data.data['Transaction Hash'],
+                ipaId: response.data.data['IPA ID'],
+                licenseTermsIds: response.data.data['License Terms IDs'],
+                explorerUrl: response.data.data['Explorer URL']
+              }
+            });
+          } else {
+            throw new Error(response.data.error || 'Final registration failed');
+          }
+          break;
+        }
+
+        default:
+          throw new Error('Invalid registration step');
       }
-
     } catch (error) {
-      console.error('Error registering IP:', error);
-      alert(error instanceof Error ? error.message : 'Failed to register IP');
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      setRegistrationState(prev => ({ ...prev, error: errorMessage }));
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const renderStepForm = () => {
+    if (currentStep === 1) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-blue-100">Title</label>
+            <input
+              type="text"
+              name="title"
+              id="title"
+              required
+              value={formData.title}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3"
+              placeholder="Enter your IP title"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-blue-100">Description</label>
+            <textarea
+              name="description"
+              id="description"
+              rows={3}
+              required
+              value={formData.description}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3"
+              placeholder="Describe your IP..."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="creatorName" className="block text-sm font-medium text-blue-100">Creator Name</label>
+            <input
+              type="text"
+              name="creatorName"
+              id="creatorName"
+              required
+              value={formData.creators[0].name}
+              onChange={(e) => handleCreatorChange('name', e.target.value)}
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3"
+              placeholder="Enter creator name"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="creatorAddress" className="block text-sm font-medium text-blue-100">Creator Address</label>
+            <input
+              type="text"
+              name="creatorAddress"
+              id="creatorAddress"
+              required
+              value={formData.creators[0].address}
+              readOnly
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner p-3 opacity-75"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="image" className="block text-sm font-medium text-blue-100">Image URL</label>
+            <input
+              type="url"
+              name="image"
+              id="image"
+              required
+              value={formData.image}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3"
+              placeholder="Enter image URL"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="mediaUrl" className="block text-sm font-medium text-blue-100">Media URL</label>
+            <input
+              type="url"
+              name="mediaUrl"
+              id="mediaUrl"
+              required
+              value={formData.mediaUrl}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3"
+              placeholder="Enter media URL"
+            />
+          </div>
+        </div>
+      );
+    } else if (currentStep === 2) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <label htmlFor="nftName" className="block text-sm font-medium text-blue-100">NFT Name</label>
+            <input
+              type="text"
+              name="nftName"
+              id="nftName"
+              required
+              value={formData.nftName}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3"
+              placeholder="Enter NFT name"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="nftDescription" className="block text-sm font-medium text-blue-100">NFT Description</label>
+            <textarea
+              name="nftDescription"
+              id="nftDescription"
+              rows={3}
+              required
+              value={formData.nftDescription}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3"
+              placeholder="Describe your NFT..."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="nftImage" className="block text-sm font-medium text-blue-100">NFT Image URL</label>
+            <input
+              type="url"
+              name="nftImage"
+              id="nftImage"
+              required
+              value={formData.nftImage}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3"
+              placeholder="Enter NFT image URL"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="animationUrl" className="block text-sm font-medium text-blue-100">Animation URL</label>
+            <input
+              type="url"
+              name="animationUrl"
+              id="animationUrl"
+              required
+              value={formData.animationUrl}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3"
+              placeholder="Enter animation URL"
+            />
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-blue-100">Attributes</h3>
+              <button
+                type="button"
+                onClick={addAttribute}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-indigo-200 bg-indigo-700/60 hover:bg-indigo-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 transition"
+              >
+                Add Attribute
+              </button>
+            </div>
+            {formData.attributes.map((attr, index) => (
+              <div key={index} className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mb-2">
+                <div>
+                  <label className="block text-sm font-medium text-indigo-100">Key</label>
+                  <input
+                    type="text"
+                    value={attr.key}
+                    onChange={(e) => handleAttributeChange(index, 'key', e.target.value)}
+                    className="mt-1 block w-full rounded-lg border-0 bg-indigo-900/40 text-white shadow-inner focus:ring-2 focus:ring-indigo-400 focus:outline-none p-3"
+                    placeholder="e.g. Genre"
+                  />
+                </div>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-grow">
+                    <label className="block text-sm font-medium text-indigo-100">Value</label>
+                    <input
+                      type="text"
+                      value={attr.value}
+                      onChange={(e) => handleAttributeChange(index, 'value', e.target.value)}
+                      className="mt-1 block w-full rounded-lg border-0 bg-indigo-900/40 text-white shadow-inner focus:ring-2 focus:ring-indigo-400 focus:outline-none p-3"
+                      placeholder="e.g. Electronic"
+                    />
+                  </div>
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => removeAttribute(index)}
+                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-red-200 bg-red-700/60 hover:bg-red-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    } else if (currentStep === 3) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h3 className="text-xl font-bold text-blue-100 mb-4">Uploading to IPFS</h3>
+            <p className="text-gray-300">
+              Your metadata will be uploaded to IPFS. This step is required before creating your NFT.
+            </p>
+          </div>
+        </div>
+      );
+    } else if (currentStep === 4) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h3 className="text-xl font-bold text-blue-100 mb-4">Creating NFT</h3>
+            <p className="text-gray-300">
+              Your IP will be registered as an NFT on the blockchain. This is the final step.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <section className="min-h-screen w-full flex items-center justify-center overflow-hidden relative">
-      {/* Remove all background divs here, keep only the content */}
       <div className="relative z-10 w-full flex flex-col md:flex-row items-center justify-center gap-8 px-2 md:px-8">
         {/* Registration Form */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-auto bg-gradient-to-br from-blue-900/80 to-purple-900/70 rounded-3xl shadow-2xl border border-blue-500/30 backdrop-blur-2xl p-10 md:p-14 animate-fade-in">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-auto bg-gradient-to-br from-blue-900/80 to-purple-900/70 rounded-3xl shadow-2xl border border-blue-500/30 backdrop-blur-2xl p-10 md:p-14">
             <div className="text-center mb-10">
               <h2 className="text-4xl md:text-5xl font-extrabold leading-tight mb-3 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Register Your IP
               </h2>
               <p className="mt-2 text-lg text-gray-200">
-                Register your intellectual property on the Story blockchain
+                Step {currentStep}: {registrationSteps[currentStep - 1].title}
               </p>
+              {registrationState.error && (
+                <div className="mt-4 p-4 bg-red-500/20 rounded-lg border border-red-500/30">
+                  <p className="text-red-200">{registrationState.error}</p>
+                </div>
+              )}
               {!isConnected && (
                 <div className="mt-4 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
                   <p className="text-yellow-200 mb-2">Please connect your wallet to continue</p>
@@ -158,194 +503,90 @@ const Register: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-xl font-bold text-blue-200 mb-4">Basic Information</h3>
-                <div className="grid grid-cols-1 gap-6">
-                  <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-blue-100">Title</label>
-                    <input
-                      type="text"
-                      name="title"
-                      id="title"
-                      required
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3 placeholder:text-blue-300"
-                      placeholder="e.g. Midnight Marriage"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-blue-100">Description</label>
-                    <textarea
-                      name="description"
-                      id="description"
-                      rows={3}
-                      required
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-lg border-0 bg-blue-900/40 text-white shadow-inner focus:ring-2 focus:ring-blue-400 focus:outline-none p-3 placeholder:text-blue-300"
-                      placeholder="Describe your IP..."
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Creator Information */}
-              <div>
-                <h3 className="text-xl font-bold text-purple-200 mb-4">Creator Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="creatorName" className="block text-sm font-medium text-purple-100">Creator Name</label>
-                    <input
-                      type="text"
-                      name="creatorName"
-                      id="creatorName"
-                      required
-                      value={formData.creatorName}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-lg border-0 bg-purple-900/40 text-white shadow-inner focus:ring-2 focus:ring-purple-400 focus:outline-none p-3 placeholder:text-purple-300"
-                      placeholder="e.g. Jacob Tucker"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="creatorAddress" className="block text-sm font-medium text-purple-100">Creator Address</label>
-                    <input
-                      type="text"
-                      name="creatorAddress"
-                      id="creatorAddress"
-                      required
-                      value={formData.creatorAddress}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-lg border-0 bg-purple-900/40 text-white shadow-inner focus:ring-2 focus:ring-purple-400 focus:outline-none p-3 placeholder:text-purple-300"
-                      placeholder="0x..."
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Media Information */}
-              <div>
-                <h3 className="text-xl font-bold text-pink-200 mb-4">Media Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="imageUrl" className="block text-sm font-medium text-pink-100">Image URL</label>
-                    <input
-                      type="url"
-                      name="imageUrl"
-                      id="imageUrl"
-                      required
-                      value={formData.imageUrl}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-lg border-0 bg-pink-900/40 text-white shadow-inner focus:ring-2 focus:ring-pink-400 focus:outline-none p-3 placeholder:text-pink-300"
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="mediaUrl" className="block text-sm font-medium text-pink-100">Media URL</label>
-                    <input
-                      type="url"
-                      name="mediaUrl"
-                      id="mediaUrl"
-                      required
-                      value={formData.mediaUrl}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-lg border-0 bg-pink-900/40 text-white shadow-inner focus:ring-2 focus:ring-pink-400 focus:outline-none p-3 placeholder:text-pink-300"
-                      placeholder="https://..."
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Attributes */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold text-blue-100">Attributes</h3>
-                  <button
-                    type="button"
-                    onClick={addAttribute}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-indigo-200 bg-indigo-700/60 hover:bg-indigo-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 transition"
-                  >
-                    Add Attribute
-                  </button>
-                </div>
-                {formData.attributes.map((attr, index) => (
-                  <div key={index} className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mb-2">
-                    <div>
-                      <label className="block text-sm font-medium text-indigo-100">Key</label>
-                      <input
-                        type="text"
-                        value={attr.key}
-                        onChange={(e) => handleAttributeChange(index, 'key', e.target.value)}
-                        className="mt-1 block w-full rounded-lg border-0 bg-indigo-900/40 text-white shadow-inner focus:ring-2 focus:ring-indigo-400 focus:outline-none p-3 placeholder:text-indigo-300"
-                        placeholder="e.g. Suno Artist"
-                      />
-                    </div>
-                    <div className="flex gap-2 items-end">
-                      <div className="flex-grow">
-                        <label className="block text-sm font-medium text-indigo-100">Value</label>
-                        <input
-                          type="text"
-                          value={attr.value}
-                          onChange={(e) => handleAttributeChange(index, 'value', e.target.value)}
-                          className="mt-1 block w-full rounded-lg border-0 bg-indigo-900/40 text-white shadow-inner focus:ring-2 focus:ring-indigo-400 focus:outline-none p-3 placeholder:text-indigo-300"
-                          placeholder="e.g. amazedneurofunk956"
-                        />
-                      </div>
-                      {index > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => removeAttribute(index)}
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-red-200 bg-red-700/60 hover:bg-red-800/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {renderStepForm()}
 
               {/* Submit Button */}
               <div className="flex justify-end space-x-4 mt-8">
                 <button
                   type="button"
-                  onClick={() => navigate('/')} 
-                  className="px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-200 bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 transition"
+                  onClick={() => navigate('/')}
+                  disabled={isLoading}
+                  className="px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-200 bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoading || !isConnected}
+                  disabled={!isConnected || isLoading}
                   className={`px-8 py-3 border border-transparent rounded-lg shadow-xl text-base font-bold text-white 
-                    ${!isConnected ? 'bg-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700'} 
-                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-200
-                    ${isLoading ? 'opacity-75 cursor-wait' : ''}`}
+                    ${!isConnected || isLoading ? 'bg-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700'} 
+                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-200`}
                 >
-                  {isLoading ? 'Registering...' : !isConnected ? 'Connect Wallet' : 'Register IP'}
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </div>
+                  ) : !isConnected ? (
+                    'Connect Wallet'
+                  ) : currentStep === 1 ? (
+                    'Continue to Step 2'
+                  ) : currentStep === 2 ? (
+                    'Continue to Step 3'
+                  ) : currentStep === 3 ? (
+                    'Continue to Step 4'
+                  ) : (
+                    'Complete Registration'
+                  )}
                 </button>
               </div>
             </form>
           </div>
         </div>
-        {/* Benefits Panel */}
+
+        {/* Registration Steps Panel */}
         <div className="w-full md:w-1/2 mt-8 md:mt-0 flex flex-col items-center justify-center">
-          <div className="w-full max-w-2xl bg-gradient-to-br from-blue-900/80 to-purple-900/70 rounded-3xl shadow-xl border border-blue-500/30 backdrop-blur-2xl p-8 md:p-10 h-full flex flex-col justify-center">
-            <h2 className="text-3xl md:text-4xl font-extrabold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Why Register Your IP?
+          <div className="w-full max-w-2xl bg-gradient-to-br from-blue-900/80 to-purple-900/70 rounded-3xl shadow-xl border border-blue-500/30 backdrop-blur-2xl p-8 md:p-10">
+            <h2 className="text-3xl font-extrabold mb-8 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Registration Steps
             </h2>
-            <ul className="space-y-6">
-              {benefits.map((b, i) => (
-                <li key={i} className="flex items-start gap-4">
-                  <span>{b.icon}</span>
-                  <div>
-                    <div className="font-bold text-lg">{b.title}</div>
-                    <div className="text-gray-300 text-sm">{b.desc}</div>
+            <div className="space-y-6">
+              {registrationSteps.map((step) => (
+                <div
+                  key={step.id}
+                  className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${
+                    step.id === currentStep
+                      ? 'bg-blue-500/20 border border-blue-500/30'
+                      : step.id < currentStep
+                      ? 'bg-green-500/20 border border-green-500/30'
+                      : 'bg-gray-500/20 border border-gray-500/30'
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${
+                    step.id === currentStep
+                      ? 'bg-blue-500/30 text-blue-200'
+                      : step.id < currentStep
+                      ? 'bg-green-500/30 text-green-200'
+                      : 'bg-gray-500/30 text-gray-200'
+                  }`}>
+                    {step.icon}
                   </div>
-                </li>
+                  <div>
+                    <h3 className="font-bold text-lg">{step.title}</h3>
+                    <p className="text-sm text-gray-300">{step.description}</p>
+                    {step.id < currentStep && (
+                      <div className="mt-2 flex items-center text-green-400 text-sm">
+                        <CheckCircleIcon className="w-4 h-4 mr-1" />
+                        Completed
+                      </div>
+                    )}
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
       </div>

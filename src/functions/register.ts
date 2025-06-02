@@ -7,7 +7,7 @@ import { UploadResult, getIPFSURLs } from './uploads'
 export interface RegistrationOptions {
     defaultMintingFee?: number
     commercialRevShare?: number
-    spgNftContract?: string
+    spgNftContract?: `0x${string}`
     waitForTransaction?: boolean
     ipfsGateway?: string
 }
@@ -32,7 +32,7 @@ export const registerIPAsset = async (
     const {
         defaultMintingFee = 1,
         commercialRevShare = 5,
-        spgNftContract = SPGNFTContractAddress,
+        spgNftContract = SPGNFTContractAddress as `0x${string}`,
         waitForTransaction = true,
         ipfsGateway = 'https://ipfs.io/ipfs/'
     } = options
@@ -41,7 +41,7 @@ export const registerIPAsset = async (
         const ipfsUrls = getIPFSURLs(uploadResult, ipfsGateway)
 
         const response = await client.ipAsset.mintAndRegisterIpAssetWithPilTerms({
-            spgNftContract,
+            spgNftContract: spgNftContract as `0x${string}`,
             licenseTermsData: [
                 {
                     terms: createCommercialRemixTerms({

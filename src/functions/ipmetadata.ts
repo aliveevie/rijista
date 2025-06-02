@@ -1,5 +1,6 @@
 import { IpMetadata, IpCreator } from '@story-protocol/core-sdk'
 import { client } from '../../utils/config'
+import { createHash } from 'crypto'
 
 export interface Creator {
     name: string
@@ -19,15 +20,18 @@ export interface IPMetadataInput {
     mediaType: string
 }
 
+const generateHash = (url: string): `0x${string}` => {
+    const hash = createHash('sha256').update(url).digest('hex');
+    return `0x${hash}` as `0x${string}`;
+};
+
 export const generateIPMetadata = ({
     title,
     description,
     createdAt,
     creators,
     image,
-    imageHash,
     mediaUrl,
-    mediaHash,
     mediaType
 }: {
     title: string
@@ -39,9 +43,7 @@ export const generateIPMetadata = ({
         contributionPercent: number
     }[]
     image: string
-    imageHash: `0x${string}`
     mediaUrl: string
-    mediaHash: `0x${string}`
     mediaType: string
 }): IpMetadata => {
     const ipCreators: IpCreator[] = creators.map(creator => ({
@@ -49,6 +51,10 @@ export const generateIPMetadata = ({
         address: creator.address,
         contributionPercent: creator.contributionPercent
     }))
+
+    // Generate hashes for image and media
+    const imageHash = generateHash(image);
+    const mediaHash = generateHash(mediaUrl);
 
     return client.ipAsset.generateIpMetadata({
         title,
@@ -71,9 +77,7 @@ export const validateAndCreateIPMetadata = (input: Partial<IPMetadataInput>): Ip
         'createdAt',
         'creators',
         'image',
-        'imageHash',
         'mediaUrl',
-        'mediaHash',
         'mediaType'
     ]
 
@@ -94,12 +98,7 @@ export const validateAndCreateIPMetadata = (input: Partial<IPMetadataInput>): Ip
         }
     })
 
-    // Validate hash format
-    if (!input.imageHash?.startsWith('0x') || !input.mediaHash?.startsWith('0x')) {
-        throw new Error('Image and media hashes must start with 0x')
-    }
-
-    return generateIPMetadata(input as IPMetadataInput)
+    return generateIPMetadata(input as Omit<IPMetadataInput, 'imageHash' | 'mediaHash'>)
 }
 
 // Example usage:
@@ -116,9 +115,7 @@ export const createDefaultIPMetadata = (): IpMetadata => {
             },
         ],
         image: 'https://cdn2.suno.ai/image_large_8bcba6bc-3f60-4921-b148-f32a59086a4c.jpeg',
-        imageHash: '0xc404730cdcdf7e5e54e8f16bc6687f97c6578a296f4a21b452d8a6ecabd61bcc' as `0x${string}`,
         mediaUrl: 'https://cdn1.suno.ai/dcd3076f-3aa5-400b-ba5d-87d30f27c311.mp3',
-        mediaHash: '0xb52a44f53b2485ba772bd4857a443e1fb942cf5dda73c870e2d2238ecd607aee' as `0x${string}`,
         mediaType: 'audio/mpeg',
     })
 }
