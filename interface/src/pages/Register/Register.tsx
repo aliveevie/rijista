@@ -5,7 +5,7 @@ import { ConnectButton } from '@tomo-inc/tomo-evm-kit';
 import { useAccount } from 'wagmi';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8083/api';
+const API_BASE_URL = 'https://server-beta-dun-21.vercel.app/api';
 
 const registrationSteps = [
   {
