@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircleIcon, DocumentTextIcon, PhotoIcon, MusicalNoteIcon, CloudArrowUpIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, DocumentTextIcon, PhotoIcon, MusicalNoteIcon, CloudArrowUpIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon, ClipboardIcon, HomeIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { ConnectButton } from '@tomo-inc/tomo-evm-kit';
 import { useAccount } from 'wagmi';
 import axios from 'axios';
@@ -51,6 +51,44 @@ interface RegistrationDetails {
   licenseTermsIds: string[];
   explorerUrl: string;
   timestamp: string;
+}
+
+// Helper for copy-to-clipboard
+const CopyButton: React.FC<{ value: string }> = ({ value }) => {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="ml-2 text-blue-300 hover:text-blue-400 focus:outline-none"
+      title="Copy to clipboard"
+      onClick={() => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      }}
+    >
+      {copied ? (
+        <span className="text-green-400 text-xs ml-1">Copied!</span>
+      ) : (
+        <ClipboardIcon className="w-4 h-4 inline" />
+      )}
+    </button>
+  );
+};
+
+const Detail: React.FC<{ label: string; value: string | string[]; copy?: boolean }> = ({ label, value, copy }) => (
+  <div className="mb-3">
+    <span className="block text-xs text-gray-400">{label}</span>
+    <span className="block text-white font-mono text-sm break-all">
+      {Array.isArray(value) ? value.join(', ') : value}
+      {copy && typeof value === 'string' && <CopyButton value={value} />}
+    </span>
+  </div>
+);
+
+function formatDate(dateString: string) {
+  const d = new Date(dateString);
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 const Register: React.FC = () => {
@@ -501,71 +539,46 @@ const Register: React.FC = () => {
     if (!registrationDetails) return null;
 
     return (
-      <div className="space-y-8">
-        <div className="text-center mb-8">
-          <h2 className="text-4xl font-extrabold text-green-400 mb-4">Registration Successful!</h2>
-          <p className="text-gray-300">Your IP has been successfully registered on the blockchain.</p>
+      <div className="flex flex-col items-center animate-fade-in">
+        {/* Success Animation */}
+        <div className="mb-4">
+          <CheckCircleIcon className="w-16 h-16 text-green-400 animate-bounce" />
         </div>
+        <h2 className="text-4xl font-extrabold text-green-400 mb-2">Registration Successful!</h2>
+        <p className="text-gray-300 mb-8">Your IP has been successfully registered on the blockchain.</p>
 
-        <div className="bg-blue-900/40 rounded-xl p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gradient-to-br from-blue-900/80 to-purple-900/70 rounded-2xl p-8 shadow-xl w-full max-w-3xl mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* IP Details */}
             <div>
-              <h3 className="text-lg font-semibold text-blue-200 mb-2">IP Details</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm text-gray-400">Title</label>
-                  <p className="text-white font-medium">{registrationDetails.title}</p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400">IPA ID</label>
-                  <p className="text-white font-medium">{registrationDetails.ipaId}</p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400">Transaction Hash</label>
-                  <p className="text-white font-mono text-sm break-all">{registrationDetails.transactionHash}</p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400">License Terms IDs</label>
-                  <div className="space-y-1">
-                    {registrationDetails.licenseTermsIds.map((id, index) => (
-                      <p key={index} className="text-white font-mono text-sm">{id}</p>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <h3 className="text-lg font-semibold text-blue-200 mb-4 border-b border-blue-700 pb-2">IP Details</h3>
+              <Detail label="Title" value={registrationDetails.title} />
+              <Detail label="IPA ID" value={registrationDetails.ipaId} copy />
+              <Detail label="Transaction Hash" value={registrationDetails.transactionHash} copy />
+              <Detail label="License Terms IDs" value={registrationDetails.licenseTermsIds} />
             </div>
-
+            {/* Registration Info */}
             <div>
-              <h3 className="text-lg font-semibold text-blue-200 mb-2">Registration Info</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm text-gray-400">Registration ID</label>
-                  <p className="text-white font-medium">{registrationDetails.registrationId}</p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400">Timestamp</label>
-                  <p className="text-white font-medium">
-                    {new Date(registrationDetails.timestamp).toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400">Explorer Link</label>
-                  <a
-                    href={registrationDetails.explorerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors"
-                  >
-                    View on Explorer
-                    <ArrowTopRightOnSquareIcon className="w-4 h-4 ml-1" />
-                  </a>
-                </div>
+              <h3 className="text-lg font-semibold text-blue-200 mb-4 border-b border-blue-700 pb-2">Registration Info</h3>
+              <Detail label="Registration ID" value={registrationDetails.registrationId} copy />
+              <Detail label="Timestamp" value={formatDate(registrationDetails.timestamp)} />
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-xs text-gray-400">Explorer Link</span>
+                <a
+                  href={registrationDetails.explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-blue-100 rounded-lg font-medium text-xs transition-colors ml-2"
+                  title="Open in new tab"
+                >
+                  View on Explorer <ArrowTopRightOnSquareIcon className="w-4 h-4 ml-1" />
+                </a>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-center space-x-4">
+        <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full max-w-3xl">
           <button
             onClick={() => {
               setShowRegistrationDetails(false);
@@ -589,15 +602,15 @@ const Register: React.FC = () => {
                 attributes: [{ key: '', value: '' }],
               });
             }}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow transition-colors w-full sm:w-auto"
           >
-            Register Another IP
+            <PlusIcon className="w-5 h-5 mr-2" /> Register Another IP
           </button>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            className="flex items-center justify-center px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold shadow transition-colors w-full sm:w-auto"
           >
-            Return to Home
+            <HomeIcon className="w-5 h-5 mr-2" /> Return to Home
           </button>
         </div>
       </div>
