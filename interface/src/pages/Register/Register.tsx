@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircleIcon, DocumentTextIcon, PhotoIcon, MusicalNoteIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, DocumentTextIcon, PhotoIcon, MusicalNoteIcon, CloudArrowUpIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { ConnectButton } from '@tomo-inc/tomo-evm-kit';
 import { useAccount } from 'wagmi';
 import axios from 'axios';
@@ -43,12 +43,24 @@ interface RegistrationState {
   error?: string;
 }
 
+interface RegistrationDetails {
+  registrationId: string;
+  title: string;
+  transactionHash: string;
+  ipaId: string;
+  licenseTermsIds: string[];
+  explorerUrl: string;
+  timestamp: string;
+}
+
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [registrationState, setRegistrationState] = useState<RegistrationState>({});
+  const [registrationDetails, setRegistrationDetails] = useState<RegistrationDetails | null>(null);
+  const [showRegistrationDetails, setShowRegistrationDetails] = useState(false);
   const [formData, setFormData] = useState({
     // Step 1 - IP Metadata Fields
     title: '',
@@ -126,6 +138,14 @@ const Register: React.FC = () => {
       ...prev,
       attributes: prev.attributes.filter((_, i) => i !== index)
     }));
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+    } else {
+      navigate('/');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -226,16 +246,17 @@ const Register: React.FC = () => {
           });
 
           if (response.data.success) {
-            navigate('/success', {
-              state: {
-                registrationId: response.data.data.registrationId,
-                title: formData.title,
-                transactionHash: response.data.data['Transaction Hash'],
-                ipaId: response.data.data['IPA ID'],
-                licenseTermsIds: response.data.data['License Terms IDs'],
-                explorerUrl: response.data.data['Explorer URL']
-              }
-            });
+            const details: RegistrationDetails = {
+              registrationId: response.data.data.registrationId,
+              title: formData.title,
+              transactionHash: response.data.data['Transaction Hash'],
+              ipaId: response.data.data['IPA ID'],
+              licenseTermsIds: response.data.data['License Terms IDs'],
+              explorerUrl: response.data.data['Explorer URL'],
+              timestamp: response.data.data.timestamp
+            };
+            setRegistrationDetails(details);
+            setShowRegistrationDetails(true);
           } else {
             throw new Error(response.data.error || 'Final registration failed');
           }
@@ -476,119 +497,235 @@ const Register: React.FC = () => {
     return null;
   };
 
+  const renderRegistrationDetails = () => {
+    if (!registrationDetails) return null;
+
+    return (
+      <div className="space-y-8">
+        <div className="text-center mb-8">
+          <h2 className="text-4xl font-extrabold text-green-400 mb-4">Registration Successful!</h2>
+          <p className="text-gray-300">Your IP has been successfully registered on the blockchain.</p>
+        </div>
+
+        <div className="bg-blue-900/40 rounded-xl p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-semibold text-blue-200 mb-2">IP Details</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-gray-400">Title</label>
+                  <p className="text-white font-medium">{registrationDetails.title}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400">IPA ID</label>
+                  <p className="text-white font-medium">{registrationDetails.ipaId}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400">Transaction Hash</label>
+                  <p className="text-white font-mono text-sm break-all">{registrationDetails.transactionHash}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400">License Terms IDs</label>
+                  <div className="space-y-1">
+                    {registrationDetails.licenseTermsIds.map((id, index) => (
+                      <p key={index} className="text-white font-mono text-sm">{id}</p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-blue-200 mb-2">Registration Info</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-gray-400">Registration ID</label>
+                  <p className="text-white font-medium">{registrationDetails.registrationId}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400">Timestamp</label>
+                  <p className="text-white font-medium">
+                    {new Date(registrationDetails.timestamp).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400">Explorer Link</label>
+                  <a
+                    href={registrationDetails.explorerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    View on Explorer
+                    <ArrowTopRightOnSquareIcon className="w-4 h-4 ml-1" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center space-x-4">
+          <button
+            onClick={() => {
+              setShowRegistrationDetails(false);
+              setCurrentStep(1);
+              setFormData({
+                title: '',
+                description: '',
+                createdAt: new Date().toISOString(),
+                creators: [{
+                  name: '',
+                  address: '' as `0x${string}`,
+                  contributionPercent: 100,
+                }],
+                image: '',
+                mediaUrl: '',
+                mediaType: 'audio/mpeg',
+                nftName: '',
+                nftDescription: '',
+                nftImage: '',
+                animationUrl: '',
+                attributes: [{ key: '', value: '' }],
+              });
+            }}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            Register Another IP
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <section className="min-h-screen w-full flex items-center justify-center overflow-hidden relative">
       <div className="relative z-10 w-full flex flex-col md:flex-row items-center justify-center gap-8 px-2 md:px-8">
         {/* Registration Form */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-auto bg-gradient-to-br from-blue-900/80 to-purple-900/70 rounded-3xl shadow-2xl border border-blue-500/30 backdrop-blur-2xl p-10 md:p-14">
-            <div className="text-center mb-10">
-              <h2 className="text-4xl md:text-5xl font-extrabold leading-tight mb-3 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Register Your IP
-              </h2>
-              <p className="mt-2 text-lg text-gray-200">
-                Step {currentStep}: {registrationSteps[currentStep - 1].title}
-              </p>
-              {registrationState.error && (
-                <div className="mt-4 p-4 bg-red-500/20 rounded-lg border border-red-500/30">
-                  <p className="text-red-200">{registrationState.error}</p>
-                </div>
-              )}
-              {!isConnected && (
-                <div className="mt-4 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
-                  <p className="text-yellow-200 mb-2">Please connect your wallet to continue</p>
-                  <ConnectButton />
-                </div>
-              )}
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {renderStepForm()}
-
-              {/* Submit Button */}
-              <div className="flex justify-end space-x-4 mt-8">
-                <button
-                  type="button"
-                  onClick={() => navigate('/')}
-                  disabled={isLoading}
-                  className="px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-200 bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!isConnected || isLoading}
-                  className={`px-8 py-3 border border-transparent rounded-lg shadow-xl text-base font-bold text-white 
-                    ${!isConnected || isLoading ? 'bg-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700'} 
-                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-200`}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
+            {showRegistrationDetails ? (
+              renderRegistrationDetails()
+            ) : (
+              <>
+                <div className="text-center mb-10">
+                  <h2 className="text-4xl md:text-5xl font-extrabold leading-tight mb-3 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    Register Your IP
+                  </h2>
+                  <p className="mt-2 text-lg text-gray-200">
+                    Step {currentStep}: {registrationSteps[currentStep - 1].title}
+                  </p>
+                  {registrationState.error && (
+                    <div className="mt-4 p-4 bg-red-500/20 rounded-lg border border-red-500/30">
+                      <p className="text-red-200">{registrationState.error}</p>
                     </div>
-                  ) : !isConnected ? (
-                    'Connect Wallet'
-                  ) : currentStep === 1 ? (
-                    'Continue to Step 2'
-                  ) : currentStep === 2 ? (
-                    'Continue to Step 3'
-                  ) : currentStep === 3 ? (
-                    'Continue to Step 4'
-                  ) : (
-                    'Complete Registration'
                   )}
-                </button>
-              </div>
-            </form>
+                  {!isConnected && (
+                    <div className="mt-4 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                      <p className="text-yellow-200 mb-2">Please connect your wallet to continue</p>
+                      <ConnectButton />
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  {renderStepForm()}
+
+                  {/* Navigation Buttons */}
+                  <div className="flex justify-between space-x-4 mt-8">
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      disabled={isLoading}
+                      className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-200 bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!isConnected || isLoading}
+                      className={`px-8 py-3 border border-transparent rounded-lg shadow-xl text-base font-bold text-white 
+                        ${!isConnected || isLoading ? 'bg-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700'} 
+                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-200`}
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Processing...
+                        </div>
+                      ) : !isConnected ? (
+                        'Connect Wallet'
+                      ) : currentStep === 1 ? (
+                        'Continue to Step 2'
+                      ) : currentStep === 2 ? (
+                        'Continue to Step 3'
+                      ) : currentStep === 3 ? (
+                        'Continue to Step 4'
+                      ) : (
+                        'Complete Registration'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Registration Steps Panel */}
-        <div className="w-full md:w-1/2 mt-8 md:mt-0 flex flex-col items-center justify-center">
-          <div className="w-full max-w-2xl bg-gradient-to-br from-blue-900/80 to-purple-900/70 rounded-3xl shadow-xl border border-blue-500/30 backdrop-blur-2xl p-8 md:p-10">
-            <h2 className="text-3xl font-extrabold mb-8 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Registration Steps
-            </h2>
-            <div className="space-y-6">
-              {registrationSteps.map((step) => (
-                <div
-                  key={step.id}
-                  className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${
-                    step.id === currentStep
-                      ? 'bg-blue-500/20 border border-blue-500/30'
-                      : step.id < currentStep
-                      ? 'bg-green-500/20 border border-green-500/30'
-                      : 'bg-gray-500/20 border border-gray-500/30'
-                  }`}
-                >
-                  <div className={`p-2 rounded-lg ${
-                    step.id === currentStep
-                      ? 'bg-blue-500/30 text-blue-200'
-                      : step.id < currentStep
-                      ? 'bg-green-500/30 text-green-200'
-                      : 'bg-gray-500/30 text-gray-200'
-                  }`}>
-                    {step.icon}
+        {/* Registration Steps Panel - Only show when not displaying registration details */}
+        {!showRegistrationDetails && (
+          <div className="w-full md:w-1/2 mt-8 md:mt-0 flex flex-col items-center justify-center">
+            <div className="w-full max-w-2xl bg-gradient-to-br from-blue-900/80 to-purple-900/70 rounded-3xl shadow-xl border border-blue-500/30 backdrop-blur-2xl p-8 md:p-10">
+              <h2 className="text-3xl font-extrabold mb-8 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Registration Steps
+              </h2>
+              <div className="space-y-6">
+                {registrationSteps.map((step) => (
+                  <div
+                    key={step.id}
+                    className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${
+                      step.id === currentStep
+                        ? 'bg-blue-500/20 border border-blue-500/30'
+                        : step.id < currentStep
+                        ? 'bg-green-500/20 border border-green-500/30'
+                        : 'bg-gray-500/20 border border-gray-500/30'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${
+                      step.id === currentStep
+                        ? 'bg-blue-500/30 text-blue-200'
+                        : step.id < currentStep
+                        ? 'bg-green-500/30 text-green-200'
+                        : 'bg-gray-500/30 text-gray-200'
+                    }`}>
+                      {step.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">{step.title}</h3>
+                      <p className="text-sm text-gray-300">{step.description}</p>
+                      {step.id < currentStep && (
+                        <div className="mt-2 flex items-center text-green-400 text-sm">
+                          <CheckCircleIcon className="w-4 h-4 mr-1" />
+                          Completed
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg">{step.title}</h3>
-                    <p className="text-sm text-gray-300">{step.description}</p>
-                    {step.id < currentStep && (
-                      <div className="mt-2 flex items-center text-green-400 text-sm">
-                        <CheckCircleIcon className="w-4 h-4 mr-1" />
-                        Completed
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
