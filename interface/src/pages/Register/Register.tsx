@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircleIcon, ShieldCheckIcon, GlobeAltIcon, CurrencyDollarIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { custom, toHex } from 'viem';
+import { useWalletClient } from "wagmi";
+import { StoryClient, type StoryConfig } from "@story-protocol/core-sdk";
 
 const benefits = [
   {
@@ -32,6 +35,8 @@ const benefits = [
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const { data: walletClient } = useWalletClient();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -79,10 +84,62 @@ const Register: React.FC = () => {
     }));
   };
 
+  const setupStoryClient = async (): Promise<StoryClient> => {
+    if (!walletClient) {
+      throw new Error("Please connect your wallet first");
+    }
+
+    const config: StoryConfig = {
+      wallet: walletClient,
+      transport: custom(walletClient.transport),
+      chainId: "aeneid",
+    };
+    
+    return StoryClient.newClient(config);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement registration functionality
-    console.log('Form submitted:', formData);
+    
+    if (!walletClient) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const client = await setupStoryClient();
+
+      // Register IP using Story Protocol
+      const response = await client.ipAsset.mintAndRegisterIp({
+        spgNftContract: '0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc',
+        ipMetadata: {
+          ipMetadataURI: formData.mediaUrl,
+          ipMetadataHash: toHex(formData.description, { size: 32 }),
+          nftMetadataURI: formData.imageUrl,
+          nftMetadataHash: toHex(formData.title, { size: 32 }),
+        },
+        txOptions: { waitForTransaction: true }
+      });
+
+      alert(`IP registered successfully!\nTransaction hash: ${response.txHash}\nIPA ID: ${response.ipId}`);
+      console.log(`Root IPA created at tx hash ${response.txHash}, IPA ID: ${response.ipId}`);
+      
+      // Navigate to success page
+      navigate('/success', { 
+        state: { 
+          txHash: response.txHash,
+          ipId: response.ipId,
+          title: formData.title 
+        } 
+      });
+
+    } catch (error) {
+      console.error('Error registering IP:', error);
+      alert(error instanceof Error ? error.message : 'Failed to register IP');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -261,9 +318,13 @@ const Register: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-8 py-3 border border-transparent rounded-lg shadow-xl text-base font-bold text-white bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-200"
+                  disabled={isLoading || !walletClient}
+                  className={`px-8 py-3 border border-transparent rounded-lg shadow-xl text-base font-bold text-white 
+                    ${!walletClient ? 'bg-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700'} 
+                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-200
+                    ${isLoading ? 'opacity-75 cursor-wait' : ''}`}
                 >
-                  Register IP
+                  {isLoading ? 'Registering...' : !walletClient ? 'Connect Wallet' : 'Register IP'}
                 </button>
               </div>
             </form>
