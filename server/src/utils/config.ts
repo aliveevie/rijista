@@ -45,7 +45,8 @@ const validateEnvironmentVars = () => {
 }
 
 const getNetwork = (): NetworkType => {
-    const network = process.env.STORY_NETWORK as NetworkType
+  //  const network = process.env.STORY_NETWORK as NetworkType
+  const network = 'aeneid'
     if (network && !(network in networkConfigs)) {
         throw new Error(`Invalid network: ${network}. Must be one of: ${Object.keys(networkConfigs).join(', ')}`)
     }
