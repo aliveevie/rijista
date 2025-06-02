@@ -1,14 +1,15 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
-import { registerIPAsset } from '../scripts/registration/register';
+import cors from 'cors';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8083;
 
 // Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -18,11 +19,22 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // IP Asset Registration endpoint
-app.post('/register-ip', async (req: Request, res: Response) => {
+app.post('/api/register-ip', async (req: Request, res: Response) => {
     try {
-        const result = await registerIPAsset();
-        res.json(result);
+        // Log the received data
+        console.log('Received registration data:', req.body);
+
+        // Send a mock success response
+        res.json({
+            success: true,
+            data: {
+                message: 'Registration data received successfully',
+                receivedData: req.body
+            }
+        });
+
     } catch (error) {
+        console.error('Error in registration endpoint:', error);
         res.status(500).json({
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -31,15 +43,6 @@ app.post('/register-ip', async (req: Request, res: Response) => {
 });
 
 // Start server
-app.listen(port, async () => {
+app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
-    
-    // Run IP asset registration when server starts
-    try {
-        console.log('Starting IP asset registration...');
-        const result = await registerIPAsset();
-        console.log('IP Asset Registration Result:', result);
-    } catch (error) {
-        console.error('Error during IP asset registration:', error);
-    }
 }); 

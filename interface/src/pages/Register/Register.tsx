@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircleIcon, ShieldCheckIcon, GlobeAltIcon, CurrencyDollarIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { custom, toHex } from 'viem';
-import { useWalletClient } from "wagmi";
-import { StoryClient, type StoryConfig } from "@story-protocol/core-sdk";
+import { ConnectButton } from '@tomo-inc/tomo-evm-kit';
+import { useAccount } from 'wagmi';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8083/api';
 
 const benefits = [
   {
@@ -35,7 +37,7 @@ const benefits = [
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { data: walletClient } = useWalletClient();
+  const { address, isConnected } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -49,6 +51,15 @@ const Register: React.FC = () => {
       { key: '', value: '' }
     ]
   });
+
+  useEffect(() => {
+    if (isConnected && address) {
+      setFormData(prev => ({
+        ...prev,
+        creatorAddress: address
+      }));
+    }
+  }, [isConnected, address]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -84,55 +95,37 @@ const Register: React.FC = () => {
     }));
   };
 
-  const setupStoryClient = async (): Promise<StoryClient> => {
-    if (!walletClient) {
-      throw new Error("Please connect your wallet first");
-    }
-
-    const config: StoryConfig = {
-      wallet: walletClient,
-      transport: custom(walletClient.transport),
-      chainId: "aeneid",
-    };
-    
-    return StoryClient.newClient(config);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!walletClient) {
-      alert("Please connect your wallet first");
+    if (!isConnected) {
+      alert("Please connect your wallet first to register your IP");
       return;
     }
 
     try {
       setIsLoading(true);
-      const client = await setupStoryClient();
 
-      // Register IP using Story Protocol
-      const response = await client.ipAsset.mintAndRegisterIp({
-        spgNftContract: '0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc',
-        ipMetadata: {
-          ipMetadataURI: formData.mediaUrl,
-          ipMetadataHash: toHex(formData.description, { size: 32 }),
-          nftMetadataURI: formData.imageUrl,
-          nftMetadataHash: toHex(formData.title, { size: 32 }),
-        },
-        txOptions: { waitForTransaction: true }
-      });
+      // Log the data being sent
+      console.log('Sending registration data:', formData);
 
-      alert(`IP registered successfully!\nTransaction hash: ${response.txHash}\nIPA ID: ${response.ipId}`);
-      console.log(`Root IPA created at tx hash ${response.txHash}, IPA ID: ${response.ipId}`);
+      // Send registration request to our backend
+      const response = await axios.post(`${API_BASE_URL}/register-ip`, formData);
       
-      // Navigate to success page
-      navigate('/success', { 
-        state: { 
-          txHash: response.txHash,
-          ipId: response.ipId,
-          title: formData.title 
-        } 
-      });
+      // Log the response
+      console.log('Server response:', response.data);
+
+      if (response.data.success) {
+        alert('Registration successful! Check console for details.');
+        navigate('/success', { 
+          state: { 
+            ...response.data.data,
+            title: formData.title
+          } 
+        });
+      } else {
+        throw new Error(response.data.error || 'Registration failed');
+      }
 
     } catch (error) {
       console.error('Error registering IP:', error);
@@ -156,6 +149,12 @@ const Register: React.FC = () => {
               <p className="mt-2 text-lg text-gray-200">
                 Register your intellectual property on the Story blockchain
               </p>
+              {!isConnected && (
+                <div className="mt-4 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                  <p className="text-yellow-200 mb-2">Please connect your wallet to continue</p>
+                  <ConnectButton />
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
@@ -318,13 +317,13 @@ const Register: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoading || !walletClient}
+                  disabled={isLoading || !isConnected}
                   className={`px-8 py-3 border border-transparent rounded-lg shadow-xl text-base font-bold text-white 
-                    ${!walletClient ? 'bg-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700'} 
+                    ${!isConnected ? 'bg-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:to-pink-700'} 
                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-200
                     ${isLoading ? 'opacity-75 cursor-wait' : ''}`}
                 >
-                  {isLoading ? 'Registering...' : !walletClient ? 'Connect Wallet' : 'Register IP'}
+                  {isLoading ? 'Registering...' : !isConnected ? 'Connect Wallet' : 'Register IP'}
                 </button>
               </div>
             </form>
