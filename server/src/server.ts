@@ -6,98 +6,50 @@ import { validateAndCreateNFTMetadata } from './functions/nftmedata';
 import { registerIPAssetWithMetadata } from './functions/register';
 import { uploadMetadataToIPFS } from './functions/uploads';
 import fetch from 'node-fetch';
+import yakoaIpApi from '@api/yakoa-ip-api';
 
 // Load environment variables
 dotenv.config();
 
-// Test function to register a token with Yakoa IP API
-async function testRegisterToken() {
-    try {
-        const url = 'https://docs-demo.ip-api-sandbox.yakoa.io/story-aeneid/token';
-        const apiKey = '8wdFsbEpsE5vJjKy1eHSI6PYn1jzsvmPa5ge11mW';
-
-        // Log the request details (excluding sensitive data)
-        console.log('Attempting to register token with Yakoa IP API:', {
-            url,
-            method: 'POST',
-            headers: {
-                'accept': 'application/json',
-                'content-type': 'application/json',
-                'X-API-KEY': '***' // Masked for security
-            }
-        });
-
-        // Sample token data
-        const tokenData = {
-            id: "0x1234567890abcdef:1",
-            registration_tx: {
-                tx_hash: "0xabcdef1234567890",
-                block_number: 12345678,
-                network: "story-aeneid"
-            },
-            creator_id: "creator123",
-            metadata: {
-                name: "Test Token",
-                description: "A test token for Yakoa IP API integration",
-                attributes: [
-                    {
-                        trait_type: "Category",
-                        value: "Test"
-                    }
-                ]
-            },
-            media: [
-                {
-                    media_id: "media1",
-                    url: "https://example.com/test-image.jpg",
-                    hash: "0x1234567890abcdef"
-                }
-            ]
-        };
-
-        // Log the request payload
-        console.log('Request payload:', JSON.stringify(tokenData, null, 2));
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'accept': 'application/json',
-                'content-type': 'application/json',
-                'X-API-KEY': apiKey,
-                'Authorization': `Bearer ${apiKey}` // Adding Bearer token as alternative auth method
-            },
-            body: JSON.stringify(tokenData)
-        });
-
-        // Log the complete response headers for debugging
-        console.log('Response headers:', {
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries())
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status} ${response.statusText} - ${JSON.stringify(data)}`);
-        }
-
-        console.log('Yakoa IP API Token Registration Response:', {
-            status: response.status,
-            statusText: response.statusText,
-            data
-        });
-
-        return data;
-    } catch (error: unknown) {
-        console.error('Error registering token with Yakoa IP API:', {
-            name: error instanceof Error ? error.name : 'Unknown',
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
-        });
-        throw error;
+// See: https://docs.yakoa.io/reference/register-token for schema and field requirements
+yakoaIpApi.auth('8wdFsbEpsE5vJjKy1eHSI6PYn1jzsvmPa5ge11mW');
+yakoaIpApi.tokenTokenPost({
+  id: '0x8a90cab2b38dba80c64b7734e58ee1db38b8982e',
+  registration_tx: {
+    hash: '0x2473a96855e8625c5c4b643962a3905e029aaf9a55aefc882ad90bf623931570', // 64 hex chars, no 0x prefix
+    block_number: 13435576,
+    timestamp: '2021-10-17T01:00:19Z'
+  },
+  creator_id: '0x2b3ab8e7bb14988616359b78709538b10900ab7d',
+  metadata: { name: 'Doodle #42' },
+  media: [
+    {
+      media_id: 'ipfs_image',
+      url: 'https://ipfs.io/ipfs/QmQTkvAKhrTCmSR24zQgDLUiUT6gqWqh9aZJDbX5yWgLMP',
+      hash: '2bfeb6d726ea350b7e8984e7f4ee86cedfc90cf58ac60f2579968ad852e62825',
+      trust_reason: null
+    },
+    {
+      media_id: 'trusted_image',
+      url: 'https://www.nike.com/favicon.ico',
+      hash: 'c0ccf2af3b5a4b3c81727a5cc79a0d8d99529e70c9dabb9824bf9b7bf8daf96a',
+      trust_reason: { type: 'trusted_platform', platform_name: 'Magma' }
     }
-}
+  ],
+  license_parents: null,
+  authorizations: null
+})
+  .then(({ data }) => console.log('Yakoa IP API Token Registration Response:', data))
+  .catch(err => {
+    if (err && err.data) {
+      console.error('Error registering token with Yakoa IP API:', err.data);
+      if (err.data.extra) {
+        console.error('Yakoa IP API error details (extra):', JSON.stringify(err.data.extra, null, 2));
+      }
+    } else {
+      console.error('Error registering token with Yakoa IP API:', err);
+    }
+  });
 
 const app = express();
 const port = process.env.PORT || 8083;
@@ -294,14 +246,6 @@ app.post('/api/register', async (req: Request, res: Response) => {
 });
 
 // Start server
-app.listen(port, async () => {
-    console.log(`Server is running on port ${port}`);
-    
-    // Test the Yakoa IP API integration
-    try {
-        console.log('Testing Yakoa IP API token registration...');
-        await testRegisterToken();
-    } catch (error) {
-        console.error('Failed to test Yakoa IP API integration:', error);
-    }
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 }); 
