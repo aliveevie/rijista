@@ -19,6 +19,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "multiformats": "^9.9.0",
+    "node-fetch": "^2.7.0",
     "pinata-web3": "^0.5.4",
     "viem": "^2.8.12"
   },
