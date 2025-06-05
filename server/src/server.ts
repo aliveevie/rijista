@@ -245,6 +245,154 @@ app.post('/api/register', async (req: Request, res: Response) => {
     }
 });
 
+// Add Yakoa protection endpoint
+app.post('/api/protect-yakoa', async (req: Request, res: Response) => {
+  try {
+    const { registrationId } = req.body;
+
+    if (!registrationId) {
+      throw new Error('Registration ID is required for Yakoa protection');
+    }
+
+    // Get the stored registration data
+    const storedData = registrationStore.get(registrationId);
+    if (!storedData?.ipMetadata || !storedData?.nftMetadata || !storedData?.uploadResult) {
+      throw new Error('Registration data not found. Please complete IP registration first.');
+    }
+
+    const { ipMetadata, nftMetadata, uploadResult } = storedData;
+
+    // Prepare media array according to Yakoa API schema
+    const media = [
+      {
+        media_id: 'ip_asset_image',
+        url: ipMetadata.image,
+        hash: null, // Hash should be computed from the actual image
+        trust_reason: {
+          type: 'trusted_platform' as const,
+          platform_name: 'Story Protocol'
+        }
+      }
+    ];
+
+    // Add media URL if it exists
+    if (ipMetadata.mediaUrl) {
+      media.push({
+        media_id: 'ip_asset_media',
+        url: ipMetadata.mediaUrl,
+        hash: null,
+        trust_reason: {
+          type: 'trusted_platform' as const,
+          platform_name: 'Story Protocol'
+        }
+      });
+    }
+
+    // Add animation URL if it exists
+    if (nftMetadata.animation_url) {
+      media.push({
+        media_id: 'ip_asset_animation',
+        url: nftMetadata.animation_url,
+        hash: null,
+        trust_reason: {
+          type: 'trusted_platform' as const,
+          platform_name: 'Story Protocol'
+        }
+      });
+    }
+
+    // Prepare license data if available
+    const licenseParents = uploadResult.licenseTermsIds ? 
+      uploadResult.licenseTermsIds.map((id: string) => ({
+        parent_id: uploadResult.ipaId,
+        license_id: id
+      })) : null;
+
+    // Register token with Yakoa using the exact schema
+    const yakoaResponse = await yakoaIpApi.tokenTokenPost({
+      id: uploadResult.ipaId,
+      registration_tx: {
+        hash: uploadResult.transactionHash.replace('0x', ''), // Remove 0x prefix as per schema
+        block_number: uploadResult.blockNumber || 0,
+        timestamp: uploadResult.timestamp || new Date().toISOString()
+      },
+      creator_id: ipMetadata.creators[0].address,
+      metadata: {
+        name: ipMetadata.title,
+        description: ipMetadata.description,
+        created_at: ipMetadata.createdAt,
+        media_type: ipMetadata.mediaType,
+        nft_name: nftMetadata.name,
+        nft_description: nftMetadata.description,
+        attributes: nftMetadata.attributes || []
+      },
+      media,
+      license_parents: licenseParents,
+      authorizations: null
+    });
+
+    // Log successful registration with detailed data
+    console.log('Yakoa IP Protection Response:', {
+      tokenId: yakoaResponse.data.id,
+      ipMetadata: {
+        title: ipMetadata.title,
+        description: ipMetadata.description,
+        creators: ipMetadata.creators
+      },
+      media: media.map(m => ({ id: m.media_id, url: m.url })),
+      licenses: licenseParents,
+      timestamp: new Date().toISOString()
+    });
+
+    // Update stored data to include Yakoa protection status
+    registrationStore.set(registrationId, {
+      ...storedData,
+      yakoaProtection: {
+        tokenId: yakoaResponse.data.id,
+        protectedAt: new Date().toISOString(),
+        infringements: yakoaResponse.data.infringements
+      }
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        message: 'IP successfully protected with Yakoa',
+        yakoaTokenId: yakoaResponse.data.id,
+        protectedAt: new Date().toISOString(),
+        metadata: {
+          title: ipMetadata.title,
+          description: ipMetadata.description,
+          mediaCount: media.length,
+          licenseCount: licenseParents?.length || 0
+        },
+        infringements: yakoaResponse.data.infringements
+      }
+    });
+  } catch (error) {
+    console.error('Yakoa protection error:', error);
+    
+    // Handle Yakoa API specific errors with detailed logging
+    if (error && (error as any).data) {
+      console.error('Yakoa API error details:', {
+        error: (error as any).data,
+        registrationId: req.body.registrationId,
+        timestamp: new Date().toISOString()
+      });
+      
+      if ((error as any).data.extra) {
+        console.error('Yakoa API error details (extra):', JSON.stringify((error as any).data.extra, null, 2));
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to protect IP with Yakoa',
+      details: error && (error as any).data ? (error as any).data : undefined
+    });
+  }
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

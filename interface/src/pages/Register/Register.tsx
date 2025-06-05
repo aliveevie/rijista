@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircleIcon, DocumentTextIcon, PhotoIcon, MusicalNoteIcon, CloudArrowUpIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon, ClipboardIcon, HomeIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, DocumentTextIcon, PhotoIcon, MusicalNoteIcon, CloudArrowUpIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon, ClipboardIcon, HomeIcon, PlusIcon, ShieldCheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { ConnectButton } from '@tomo-inc/tomo-evm-kit';
 import { useAccount } from 'wagmi';
 import axios from 'axios';
 
-const API_BASE_URL = 'https://server-beta-dun-21.vercel.app/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8083/api';
 
 const registrationSteps = [
   {
@@ -51,7 +51,104 @@ interface RegistrationDetails {
   licenseTermsIds: string[];
   explorerUrl: string;
   timestamp: string;
+  isYakoaProtected?: boolean;
+  yakoaProtection?: {
+    tokenId: string;
+    protectedAt: string;
+    metadata: {
+      title: string;
+      description: string;
+      mediaCount: number;
+      licenseCount: number;
+    };
+  };
 }
+
+// Add new interface for Yakoa modal
+interface YakoaBenefitsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading?: boolean;
+}
+
+// Add Yakoa Benefits Modal Component
+const YakoaBenefitsModal: React.FC<YakoaBenefitsModalProps> = ({ isOpen, onClose, onConfirm, isLoading }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-gradient-to-br from-blue-900/90 to-purple-900/90 rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-blue-500/30">
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="text-2xl font-bold text-blue-100 flex items-center gap-2">
+            <ShieldCheckIcon className="w-6 h-6 text-blue-400" />
+            Protect Your IP with Yakoa
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-200 transition-colors"
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="space-y-4 mb-6">
+          <div className="bg-blue-800/30 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-200 mb-2">Benefits of Yakoa Protection:</h4>
+            <ul className="space-y-2 text-gray-300">
+              <li className="flex items-start gap-2">
+                <CheckCircleIcon className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                <span>Automated detection of unauthorized content reuse</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircleIcon className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                <span>Real-time validation of brand authorizations</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircleIcon className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                <span>Protection against future infringements</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircleIcon className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                <span>AI-powered originality detection</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Protecting...
+              </>
+            ) : (
+              <>
+                <ShieldCheckIcon className="w-5 h-5" />
+                Protect with Yakoa
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Helper for copy-to-clipboard
 const CopyButton: React.FC<{ value: string }> = ({ value }) => {
@@ -99,6 +196,8 @@ const Register: React.FC = () => {
   const [registrationState, setRegistrationState] = useState<RegistrationState>({});
   const [registrationDetails, setRegistrationDetails] = useState<RegistrationDetails | null>(null);
   const [showRegistrationDetails, setShowRegistrationDetails] = useState(false);
+  const [showYakoaModal, setShowYakoaModal] = useState(false);
+  const [isProtectingYakoa, setIsProtectingYakoa] = useState(false);
   const [formData, setFormData] = useState({
     // Step 1 - IP Metadata Fields
     title: '',
@@ -310,6 +409,38 @@ const Register: React.FC = () => {
       alert(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Add function to handle Yakoa protection
+  const handleYakoaProtection = async () => {
+    if (!registrationDetails) return;
+    
+    setIsProtectingYakoa(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/protect-yakoa`, {
+        registrationId: registrationDetails.registrationId
+      });
+
+      if (response.data.success) {
+        setRegistrationDetails(prev => prev ? {
+          ...prev,
+          isYakoaProtected: true,
+          yakoaProtection: {
+            tokenId: response.data.data.yakoaTokenId,
+            protectedAt: response.data.data.protectedAt,
+            metadata: response.data.data.metadata
+          }
+        } : null);
+        setShowYakoaModal(false);
+      } else {
+        throw new Error(response.data.error || 'Failed to protect IP with Yakoa');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to protect IP with Yakoa';
+      alert(errorMessage);
+    } finally {
+      setIsProtectingYakoa(false);
     }
   };
 
@@ -576,6 +707,60 @@ const Register: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Enhanced Yakoa Protection Section */}
+          <div className="mt-8 pt-6 border-t border-blue-700/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ShieldCheckIcon className={`w-6 h-6 ${registrationDetails.isYakoaProtected ? 'text-green-400' : 'text-blue-400'}`} />
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-200">IP Protection Status</h3>
+                  <p className="text-sm text-gray-300">
+                    {registrationDetails.isYakoaProtected 
+                      ? 'Your IP is protected by Yakoa'
+                      : 'Protect your IP with Yakoa\'s advanced protection system'}
+                  </p>
+                </div>
+              </div>
+              {!registrationDetails.isYakoaProtected && (
+                <button
+                  onClick={() => setShowYakoaModal(true)}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <ShieldCheckIcon className="w-5 h-5" />
+                  Protect with Yakoa
+                </button>
+              )}
+            </div>
+
+            {/* Show Yakoa Protection Details if protected */}
+            {registrationDetails.isYakoaProtected && registrationDetails.yakoaProtection && (
+              <div className="mt-4 bg-blue-800/30 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-blue-200 mb-3">Yakoa Protection Details</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-xs text-gray-400">Protected At</span>
+                    <p className="text-sm text-gray-200">{formatDate(registrationDetails.yakoaProtection.protectedAt)}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400">Yakoa Token ID</span>
+                    <div className="flex items-center">
+                      <p className="text-sm text-gray-200 font-mono">{registrationDetails.yakoaProtection.tokenId}</p>
+                      <CopyButton value={registrationDetails.yakoaProtection.tokenId} />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400">Protected Media</span>
+                    <p className="text-sm text-gray-200">{registrationDetails.yakoaProtection.metadata.mediaCount} items</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400">Licenses</span>
+                    <p className="text-sm text-gray-200">{registrationDetails.yakoaProtection.metadata.licenseCount} terms</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full max-w-3xl">
@@ -740,6 +925,14 @@ const Register: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Add Yakoa Modal */}
+      <YakoaBenefitsModal
+        isOpen={showYakoaModal}
+        onClose={() => setShowYakoaModal(false)}
+        onConfirm={handleYakoaProtection}
+        isLoading={isProtectingYakoa}
+      />
     </section>
   );
 };
