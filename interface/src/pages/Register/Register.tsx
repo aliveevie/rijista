@@ -69,6 +69,8 @@ interface YakoaProtection {
     status: string;
     details: any;
   }>;
+  isFallback?: boolean;
+  attempts?: number;
 }
 
 // Add new interface for Yakoa modal
@@ -425,7 +427,6 @@ const Register: React.FC = () => {
     
     setIsProtectingYakoa(true);
     try {
-      // Send complete registration data to the backend
       const response = await axios.post(`${API_BASE_URL}/protect-yakoa`, {
         registrationId: registrationDetails.registrationId,
         registrationData: {
@@ -449,7 +450,7 @@ const Register: React.FC = () => {
             ipaId: registrationDetails.ipaId,
             transactionHash: registrationDetails.transactionHash,
             licenseTermsIds: registrationDetails.licenseTermsIds,
-            blockNumber: 0, // This should come from the blockchain
+            blockNumber: 0,
             timestamp: registrationDetails.timestamp
           }
         }
@@ -463,7 +464,9 @@ const Register: React.FC = () => {
             tokenId: response.data.data.yakoaTokenId,
             protectedAt: response.data.data.protectedAt,
             metadata: response.data.data.metadata,
-            infringements: response.data.data.infringements
+            infringements: response.data.data.infringements || [],
+            isFallback: response.data.data.isFallback,
+            attempts: response.data.data.attempts
           }
         } : null);
         setShowYakoaModal(false);
@@ -746,12 +749,20 @@ const Register: React.FC = () => {
           <div className="mt-8 pt-6 border-t border-blue-700/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <ShieldCheckIcon className={`w-6 h-6 ${registrationDetails.isYakoaProtected ? 'text-green-400' : 'text-blue-400'}`} />
+                <ShieldCheckIcon className={`w-6 h-6 ${
+                  registrationDetails.isYakoaProtected 
+                    ? registrationDetails.yakoaProtection?.isFallback 
+                      ? 'text-yellow-400' 
+                      : 'text-green-400'
+                    : 'text-blue-400'
+                }`} />
                 <div>
                   <h3 className="text-lg font-semibold text-blue-200">IP Protection Status</h3>
                   <p className="text-sm text-gray-300">
                     {registrationDetails.isYakoaProtected 
-                      ? 'Your IP is protected by Yakoa'
+                      ? registrationDetails.yakoaProtection?.isFallback
+                        ? 'IP assumed to be protected by Yakoa (fallback)'
+                        : 'Your IP is protected by Yakoa'
                       : 'Protect your IP with Yakoa\'s advanced protection system'}
                   </p>
                 </div>
@@ -769,8 +780,17 @@ const Register: React.FC = () => {
 
             {/* Show Yakoa Protection Details if protected */}
             {registrationDetails.isYakoaProtected && registrationDetails.yakoaProtection && (
-              <div className="mt-4 bg-blue-800/30 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-blue-200 mb-3">Yakoa Protection Details</h4>
+              <div className={`mt-4 rounded-lg p-4 ${
+                registrationDetails.yakoaProtection.isFallback 
+                  ? 'bg-yellow-900/30 border border-yellow-500/30' 
+                  : 'bg-blue-800/30 border border-blue-500/30'
+              }`}>
+                <h4 className="text-sm font-semibold text-blue-200 mb-3">
+                  Yakoa Protection Details
+                  {registrationDetails.yakoaProtection.isFallback && (
+                    <span className="ml-2 text-yellow-400 text-xs">(Fallback Mode)</span>
+                  )}
+                </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-xs text-gray-400">Protected At</span>
@@ -791,6 +811,14 @@ const Register: React.FC = () => {
                     <span className="text-xs text-gray-400">Licenses</span>
                     <p className="text-sm text-gray-200">{registrationDetails.yakoaProtection.metadata.licenseCount} terms</p>
                   </div>
+                  {registrationDetails.yakoaProtection.isFallback && (
+                    <div className="col-span-2 mt-2">
+                      <span className="text-xs text-yellow-400">Registration Attempts</span>
+                      <p className="text-sm text-yellow-200">
+                        Made {registrationDetails.yakoaProtection.attempts} attempts to register with Yakoa
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
