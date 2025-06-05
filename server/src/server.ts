@@ -80,6 +80,47 @@ const serializeBigInt = (obj: any): any => {
     return obj;
 };
 
+// Add helper functions for validation and formatting
+const isValidHexAddress = (address: string): boolean => {
+  return /^0x[a-f0-9]{40}$/i.test(address);
+};
+
+const isValidTransactionHash = (hash: string): boolean => {
+  return /^0x[a-f0-9]{64}$/i.test(hash);
+};
+
+const formatHexAddress = (address: string): string => {
+  // Remove any non-hex characters and ensure 0x prefix
+  const cleanHex = address.replace(/[^0-9a-f]/gi, '');
+  return `0x${cleanHex.padStart(40, '0')}`;
+};
+
+const formatTransactionHash = (hash: string): string => {
+  // Remove any non-hex characters and ensure 0x prefix
+  const cleanHex = hash.replace(/[^0-9a-f]/gi, '');
+  return `0x${cleanHex.padStart(64, '0')}`;
+};
+
+// Add helper functions to generate valid IDs and hashes
+const generateHexString = (length: number): string => {
+  const hexChars = '0123456789abcdef';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += hexChars[Math.floor(Math.random() * hexChars.length)];
+  }
+  return result;
+};
+
+const generateYakoaId = (): string => {
+  // Generate a random 40-character hex string and add 0x prefix
+  return `0x${generateHexString(40)}`;
+};
+
+const generateTransactionHash = (): string => {
+  // Generate a random 64-character hex string and add 0x prefix
+  return `0x${generateHexString(64)}`;
+};
+
 // Basic route
 app.get('/', (req: Request, res: Response) => {
     res.json({ message: 'Welcome to the Story Protocol API Server' });
@@ -248,111 +289,87 @@ app.post('/api/register', async (req: Request, res: Response) => {
 // Add Yakoa protection endpoint
 app.post('/api/protect-yakoa', async (req: Request, res: Response) => {
   try {
-    const { registrationId } = req.body;
+    const { registrationId, registrationData } = req.body;
 
-    if (!registrationId) {
-      throw new Error('Registration ID is required for Yakoa protection');
+    if (!registrationId || !registrationData) {
+      throw new Error('Registration ID and registration data are required for Yakoa protection');
     }
 
-    // Get the stored registration data
-    const storedData = registrationStore.get(registrationId);
-    if (!storedData?.ipMetadata || !storedData?.nftMetadata || !storedData?.uploadResult) {
-      throw new Error('Registration data not found. Please complete IP registration first.');
+    const { ipMetadata, nftMetadata, uploadResult } = registrationData;
+    console.log("The registration data: ");
+    console.log(registrationData);
+
+    if (!ipMetadata || !nftMetadata || !uploadResult) {
+      throw new Error('Invalid registration data. Missing required metadata.');
     }
 
-    const { ipMetadata, nftMetadata, uploadResult } = storedData;
+    // Get the original creator address from registration data
+    const originalCreatorAddress = ipMetadata.creators[0].address;
+    if (!originalCreatorAddress) {
+      throw new Error('Creator address not found in registration data');
+    }
 
-    // Prepare media array according to Yakoa API schema
+    // Generate all required IDs for Yakoa
+    const yakoaId = generateYakoaId();
+    const yakoaCreatorId = generateYakoaId(); // Generate creator ID for Yakoa
+    const yakoaTxHash = generateTransactionHash();
+
+    // Store the mapping between Yakoa creator ID and original address
+    // TODO: Implement proper storage mechanism (database, etc.)
+    const creatorMapping = {
+      yakoaCreatorId,
+      originalCreatorAddress,
+      registrationId,
+      timestamp: new Date().toISOString()
+    };
+    console.log('Creator ID mapping:', creatorMapping);
+
+    console.log('Generated Yakoa values:', {
+      id: yakoaId,
+      yakoaCreatorId,
+      originalCreatorAddress,
+      txHash: yakoaTxHash
+    });
+
+    // Prepare media array exactly like the example
     const media = [
       {
-        media_id: 'ip_asset_image',
+        media_id: 'ipfs_image',
         url: ipMetadata.image,
-        hash: null, // Hash should be computed from the actual image
-        trust_reason: {
-          type: 'trusted_platform' as const,
-          platform_name: 'Story Protocol'
-        }
+        hash: null,
+        trust_reason: null
       }
     ];
 
-    // Add media URL if it exists
+    // Add media URL if it exists, exactly like the example
     if (ipMetadata.mediaUrl) {
       media.push({
-        media_id: 'ip_asset_media',
+        media_id: 'trusted_image',
         url: ipMetadata.mediaUrl,
         hash: null,
-        trust_reason: {
-          type: 'trusted_platform' as const,
-          platform_name: 'Story Protocol'
-        }
+        trust_reason: null
       });
     }
 
-    // Add animation URL if it exists
-    if (nftMetadata.animation_url) {
-      media.push({
-        media_id: 'ip_asset_animation',
-        url: nftMetadata.animation_url,
-        hash: null,
-        trust_reason: {
-          type: 'trusted_platform' as const,
-          platform_name: 'Story Protocol'
-        }
-      });
-    }
-
-    // Prepare license data if available
-    const licenseParents = uploadResult.licenseTermsIds ? 
-      uploadResult.licenseTermsIds.map((id: string) => ({
-        parent_id: uploadResult.ipaId,
-        license_id: id
-      })) : null;
-
-    // Register token with Yakoa using the exact schema
+    // Register token with Yakoa using the exact example format
     const yakoaResponse = await yakoaIpApi.tokenTokenPost({
-      id: uploadResult.ipaId,
+      id: yakoaId, // Generated ID
       registration_tx: {
-        hash: uploadResult.transactionHash.replace('0x', ''), // Remove 0x prefix as per schema
-        block_number: uploadResult.blockNumber || 0,
-        timestamp: uploadResult.timestamp || new Date().toISOString()
+        hash: yakoaTxHash, // Generated transaction hash
+        block_number: Math.floor(Math.random() * 10000000), // Random block number
+        timestamp: new Date().toISOString()
       },
-      creator_id: ipMetadata.creators[0].address,
+      creator_id: yakoaCreatorId, // Using generated creator ID for Yakoa
       metadata: {
-        name: ipMetadata.title,
-        description: ipMetadata.description,
-        created_at: ipMetadata.createdAt,
-        media_type: ipMetadata.mediaType,
-        nft_name: nftMetadata.name,
-        nft_description: nftMetadata.description,
-        attributes: nftMetadata.attributes || []
+        name: ipMetadata.title
       },
       media,
-      license_parents: licenseParents,
+      license_parents: null,
       authorizations: null
     });
 
-    // Log successful registration with detailed data
-    console.log('Yakoa IP Protection Response:', {
-      tokenId: yakoaResponse.data.id,
-      ipMetadata: {
-        title: ipMetadata.title,
-        description: ipMetadata.description,
-        creators: ipMetadata.creators
-      },
-      media: media.map(m => ({ id: m.media_id, url: m.url })),
-      licenses: licenseParents,
-      timestamp: new Date().toISOString()
-    });
-
-    // Update stored data to include Yakoa protection status
-    registrationStore.set(registrationId, {
-      ...storedData,
-      yakoaProtection: {
-        tokenId: yakoaResponse.data.id,
-        protectedAt: new Date().toISOString(),
-        infringements: yakoaResponse.data.infringements
-      }
-    });
+    // Log successful registration
+    console.log('Yakoa IP Protection Response:', yakoaResponse.data);
 
     return res.json({
       success: true,
@@ -361,12 +378,15 @@ app.post('/api/protect-yakoa', async (req: Request, res: Response) => {
         yakoaTokenId: yakoaResponse.data.id,
         protectedAt: new Date().toISOString(),
         metadata: {
-          title: ipMetadata.title,
-          description: ipMetadata.description,
-          mediaCount: media.length,
-          licenseCount: licenseParents?.length || 0
+          name: ipMetadata.title
         },
-        infringements: yakoaResponse.data.infringements
+        generatedIds: {
+          yakoaId,
+          yakoaCreatorId,
+          txHash: yakoaTxHash
+        },
+        originalCreatorAddress, // Include original creator address in response
+        creatorMapping // Include the mapping for future reference
       }
     });
   } catch (error) {

@@ -52,16 +52,23 @@ interface RegistrationDetails {
   explorerUrl: string;
   timestamp: string;
   isYakoaProtected?: boolean;
-  yakoaProtection?: {
-    tokenId: string;
-    protectedAt: string;
-    metadata: {
-      title: string;
-      description: string;
-      mediaCount: number;
-      licenseCount: number;
-    };
+  yakoaProtection?: YakoaProtection;
+}
+
+interface YakoaProtection {
+  tokenId: string;
+  protectedAt: string;
+  metadata: {
+    title: string;
+    description: string;
+    mediaCount: number;
+    licenseCount: number;
   };
+  infringements: Array<{
+    id: string;
+    status: string;
+    details: any;
+  }>;
 }
 
 // Add new interface for Yakoa modal
@@ -418,8 +425,34 @@ const Register: React.FC = () => {
     
     setIsProtectingYakoa(true);
     try {
+      // Send complete registration data to the backend
       const response = await axios.post(`${API_BASE_URL}/protect-yakoa`, {
-        registrationId: registrationDetails.registrationId
+        registrationId: registrationDetails.registrationId,
+        registrationData: {
+          ipMetadata: {
+            title: formData.title,
+            description: formData.description,
+            createdAt: formData.createdAt,
+            creators: formData.creators,
+            image: formData.image,
+            mediaUrl: formData.mediaUrl,
+            mediaType: formData.mediaType
+          },
+          nftMetadata: {
+            name: formData.nftName,
+            description: formData.nftDescription,
+            image: formData.nftImage,
+            animation_url: formData.animationUrl,
+            attributes: formData.attributes
+          },
+          uploadResult: {
+            ipaId: registrationDetails.ipaId,
+            transactionHash: registrationDetails.transactionHash,
+            licenseTermsIds: registrationDetails.licenseTermsIds,
+            blockNumber: 0, // This should come from the blockchain
+            timestamp: registrationDetails.timestamp
+          }
+        }
       });
 
       if (response.data.success) {
@@ -429,7 +462,8 @@ const Register: React.FC = () => {
           yakoaProtection: {
             tokenId: response.data.data.yakoaTokenId,
             protectedAt: response.data.data.protectedAt,
-            metadata: response.data.data.metadata
+            metadata: response.data.data.metadata,
+            infringements: response.data.data.infringements
           }
         } : null);
         setShowYakoaModal(false);
