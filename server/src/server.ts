@@ -5,7 +5,7 @@ import { generateIPMetadata } from './functions/ipmetadata';
 import { validateAndCreateNFTMetadata } from './functions/nftmedata';
 import { registerIPAssetWithMetadata } from './functions/register';
 import { uploadMetadataToIPFS } from './functions/uploads';
-import fetch from 'node-fetch';
+
 import yakoaIpApi from '@api/yakoa-ip-api';
 
 // Load environment variables
