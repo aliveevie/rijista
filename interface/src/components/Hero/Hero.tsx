@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 const Hero: React.FC = () => {
   return (
@@ -40,21 +41,49 @@ const Hero: React.FC = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-            <motion.button 
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.98 }}
-              className="relative px-8 py-4 bg-gradient-to-r from-indigo-600 to-fuchsia-600 rounded-xl font-semibold text-lg shadow-xl hover:from-indigo-700 hover:to-fuchsia-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              Register Your Music
-            </motion.button>
-            <motion.button 
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.98 }}
-              className="relative px-8 py-4 bg-white/10 backdrop-blur-sm rounded-xl font-semibold text-lg border border-white/20 hover:bg-white/20 transition-all duration-200"
-            >
-              Learn More
-            </motion.button>
+            <Link to="/register">
+              <motion.button 
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative px-8 py-4 bg-gradient-to-r from-indigo-600 to-fuchsia-600 rounded-xl font-semibold text-lg shadow-xl hover:from-indigo-700 hover:to-fuchsia-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              >
+                Register Your Music
+              </motion.button>
+            </Link>
+            <Link to="/learn">
+              <motion.button 
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative px-8 py-4 bg-white/10 backdrop-blur-sm rounded-xl font-semibold text-lg border border-white/20 hover:bg-white/20 transition-all duration-200"
+              >
+                Learn More
+              </motion.button>
+            </Link>
           </div>
+
+          {/* Bridge Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-8 p-6 bg-gradient-to-br from-purple-900/40 to-indigo-900/40 rounded-2xl border border-purple-500/20 backdrop-blur-sm"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-purple-200 mb-2">Cross-Network Bridge</h3>
+                <p className="text-gray-300">Swap your assets from any network to IP network</p>
+              </div>
+              <Link to="/bridge">
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="px-6 py-3 bg-purple-600/30 hover:bg-purple-600/40 rounded-xl font-medium text-purple-200 border border-purple-500/30 transition-all duration-200"
+                >
+                  Bridge to IP
+                </motion.button>
+              </Link>
+            </div>
+          </motion.div>
 
           {/* Trust indicators */}
           <div className="mt-12 flex flex-wrap gap-8 items-center">
