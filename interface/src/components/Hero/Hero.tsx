@@ -50,7 +50,7 @@ const Hero: React.FC = () => {
                 Register Your Music
               </motion.button>
             </Link>
-            <Link to="/learn">
+            <Link to="/register">
               <motion.button 
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.98 }}
@@ -125,6 +125,19 @@ const Hero: React.FC = () => {
                 </svg>
               </div>
               <span className="text-gray-300">Smart Royalties</span>
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="flex items-center gap-2"
+            >
+              <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <span className="text-gray-300">Yakoa Protection</span>
             </motion.div>
           </div>
         </motion.div>
