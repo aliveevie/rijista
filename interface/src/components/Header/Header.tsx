@@ -18,8 +18,8 @@ const Header: React.FC = () => (
         <nav className="nav-menu">
           <ul>
             <li><Link to="/">Home</Link></li>
-            <li><Link to="/register">Register</Link></li>
-            <li><a href="#marketplace">Marketplace</a></li>
+            <li><Link to="/bridge">Bridge</Link></li>
+            <li><Link to="/register">Register IP</Link></li>
           </ul>
         </nav>
         <div className="wallet-connect-container">

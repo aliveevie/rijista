@@ -12,6 +12,8 @@ import RijistaHero from './components/RijistaHero/RijistaHero';
 import RijistaFeatures from './components/RijistaFeatures/RijistaFeatures';
 import RijistaMarketplace from './components/RijistaMarketplace/RijistaMarketplace';
 import Register from './pages/Register/Register';
+import Bridge from './pages/Bridge';
+import GetIP from './pages/GetIP';
 import Footer from './components/Footer';
 import './App.css';
 
@@ -57,6 +59,8 @@ function App() {
               <ModalHider />
               <Routes>
                 <Route path="/register" element={<Register />} />
+                <Route path="/bridge" element={<Bridge />} />
+                <Route path="/get-ip" element={<GetIP />} />
                 <Route path="/" element={
                   <main>
                     <Hero />
