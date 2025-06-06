@@ -185,6 +185,31 @@ async function retryYakoaRegistration(params: {
   };
 }
 
+// Add this helper function at the top of the file after imports
+const createErrorResponse = (error: unknown, step?: number) => {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    // If the error is a known validation error, do not log stack trace and use 400
+    const isValidationError = (
+        typeof errorMessage === 'string' && (
+            errorMessage.includes('Please provide both a key and value') ||
+            errorMessage.includes('Please fill in all required fields') ||
+            errorMessage.includes('Please add at least one attribute') ||
+            errorMessage.includes('Please provide a valid HTTP')
+        )
+    );
+    const statusCode = isValidationError ? 400 : (error instanceof Error && error.message.includes('not found') ? 404 : 500);
+    return {
+        status: statusCode,
+        body: {
+            success: false,
+            error: errorMessage,
+            step,
+            timestamp: new Date().toISOString()
+        },
+        isValidationError
+    };
+};
+
 // Basic route
 app.get('/', (req: Request, res: Response) => {
     res.json({ message: 'Welcome to the Story Protocol API Server' });
@@ -341,12 +366,11 @@ app.post('/api/register', async (req: Request, res: Response) => {
                 throw new Error('Invalid registration step');
         }
     } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error occurred',
-            step: req.body.step
-        });
+        const { status, body, isValidationError } = createErrorResponse(error, req.body.step);
+        if (!isValidationError) {
+            console.error('Registration error:', error);
+        } // else: do not log stack trace for validation errors
+        res.status(status).json(body);
     }
 });
 
@@ -453,21 +477,11 @@ app.post('/api/protect-yakoa', async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Yakoa protection error:', error);
-    
-    if (error && (error as any).data) {
-      console.error('Yakoa API error details:', {
-        error: (error as any).data,
-        registrationId: req.body.registrationId,
-        timestamp: new Date().toISOString()
-      });
+    const { status, body, isValidationError } = createErrorResponse(error);
+    if (!isValidationError) {
+      console.error('Yakoa protection error:', error);
     }
-
-    res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to protect IP with Yakoa',
-      details: error && (error as any).data ? (error as any).data : undefined
-    });
+    res.status(status).json(body);
   }
 });
 

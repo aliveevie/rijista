@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircleIcon, DocumentTextIcon, PhotoIcon, MusicalNoteIcon, CloudArrowUpIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon, ClipboardIcon, HomeIcon, PlusIcon, ShieldCheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, DocumentTextIcon, PhotoIcon, MusicalNoteIcon, CloudArrowUpIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon, ClipboardIcon, HomeIcon, PlusIcon, ShieldCheckIcon, XMarkIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import { ConnectButton } from '@tomo-inc/tomo-evm-kit';
 import { useAccount } from 'wagmi';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8083/api';
 
@@ -197,6 +197,67 @@ function formatDate(dateString: string) {
   return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+// Add ErrorMessage component before the Register component
+interface ErrorMessageProps {
+  message: string;
+  type?: 'error' | 'warning' | 'info';
+  onDismiss?: () => void;
+}
+
+const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, type = 'error', onDismiss }) => {
+  const getIcon = () => {
+    switch (type) {
+      case 'warning':
+        return <ExclamationCircleIcon className="w-5 h-5 text-yellow-400" />;
+      case 'info':
+        return <ExclamationCircleIcon className="w-5 h-5 text-blue-400" />;
+      default:
+        return <ExclamationCircleIcon className="w-5 h-5 text-red-400" />;
+    }
+  };
+
+  const getBackgroundColor = () => {
+    switch (type) {
+      case 'warning':
+        return 'bg-yellow-500/20 border-yellow-500/30';
+      case 'info':
+        return 'bg-blue-500/20 border-blue-500/30';
+      default:
+        return 'bg-red-500/20 border-red-500/30';
+    }
+  };
+
+  return (
+    <div className={`rounded-lg p-4 ${getBackgroundColor()} border backdrop-blur-sm animate-fade-in`}>
+      <div className="flex items-start">
+        <div className="flex-shrink-0">
+          {getIcon()}
+        </div>
+        <div className="ml-3 flex-1">
+          <p className={`text-sm ${
+            type === 'warning' ? 'text-yellow-200' :
+            type === 'info' ? 'text-blue-200' :
+            'text-red-200'
+          }`}>
+            {message}
+          </p>
+        </div>
+        {onDismiss && (
+          <div className="ml-4 flex-shrink-0">
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="inline-flex text-gray-400 hover:text-gray-300 focus:outline-none"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
@@ -229,6 +290,7 @@ const Register: React.FC = () => {
       { key: '', value: '' },
     ],
   });
+  const [error, setError] = useState<{ message: string; type?: 'error' | 'warning' | 'info' } | null>(null);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -298,12 +360,15 @@ const Register: React.FC = () => {
     e.preventDefault();
     
     if (!isConnected) {
-      alert("Please connect your wallet first to register your IP");
+      setError({
+        message: "Please connect your wallet first to register your IP",
+        type: 'warning'
+      });
       return;
     }
 
     setIsLoading(true);
-    setRegistrationState(prev => ({ ...prev, error: undefined }));
+    setError(null);
 
     try {
       switch (currentStep) {
@@ -413,9 +478,30 @@ const Register: React.FC = () => {
           throw new Error('Invalid registration step');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      setRegistrationState(prev => ({ ...prev, error: errorMessage }));
-      alert(errorMessage);
+      let errorMessage = 'Registration failed';
+      if (axios.isAxiosError(error)) {
+        // Try to extract backend error message
+        const backendMsg = error.response?.data?.error;
+        if (backendMsg) {
+          // Custom handling for attribute errors
+          if (backendMsg.includes('attribute') && backendMsg.includes('key and value')) {
+            errorMessage =
+              'Each NFT attribute must have both a key and a value. Please fill in all fields for every attribute.';
+          } else {
+            errorMessage = backendMsg;
+          }
+        } else if (error.response?.status) {
+          errorMessage = `Request failed with status code ${error.response.status}`;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      setError({
+        message: errorMessage,
+        type: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -881,15 +967,21 @@ const Register: React.FC = () => {
                   <p className="mt-2 text-lg text-gray-200">
                     Step {currentStep}: {registrationSteps[currentStep - 1].title}
                   </p>
-                  {registrationState.error && (
-                    <div className="mt-4 p-4 bg-red-500/20 rounded-lg border border-red-500/30">
-                      <p className="text-red-200">{registrationState.error}</p>
+                  {error && (
+                    <div className="mt-4">
+                      <ErrorMessage
+                        message={error.message}
+                        type={error.type}
+                        onDismiss={() => setError(null)}
+                      />
                     </div>
                   )}
-                  {!isConnected && (
-                    <div className="mt-4 p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
-                      <p className="text-yellow-200 mb-2">Please connect your wallet to continue</p>
-                      <ConnectButton />
+                  {!isConnected && !error && (
+                    <div className="mt-4">
+                      <ErrorMessage
+                        message="Please connect your wallet to continue"
+                        type="warning"
+                      />
                     </div>
                   )}
                 </div>
