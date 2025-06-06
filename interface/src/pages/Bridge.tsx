@@ -20,7 +20,14 @@ const Bridge: React.FC = () => {
     let script: HTMLScriptElement | null = null;
 
     function cleanup() {
-      if (widgetRef.current) widgetRef.current.disconnect();
+      if (widgetRef.current) {
+        try {
+          widgetRef.current.disconnect();
+        } catch (e) {
+          // Ignore errors on disconnect
+        }
+        widgetRef.current = null;
+      }
       if (pollInterval) clearInterval(pollInterval);
     }
 
