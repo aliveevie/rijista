@@ -2,6 +2,10 @@
 
 Rijista is a modern web application that enables musicians and music creators to register their intellectual property on the Story Protocol blockchain. This platform provides a user-friendly interface for managing and registering music IP assets in a decentralized manner.
 
+## Live Demo
+
+Experience Rijista firsthand: [Visit Live Demo](https://rijista.vercel.app/)
+
 ## Overview
 
 Rijista simplifies the process of music IP registration by providing:
@@ -22,11 +26,12 @@ Rijista simplifies the process of music IP registration by providing:
 
 Rijista integrates with several key partners to provide a comprehensive music IP protection and management solution:
 
-### Story Protocol Integration
-- Direct integration with Story Protocol for blockchain-based IP registration
-- Smart contract integration for secure and transparent IP management
-- Automated metadata handling and IP asset registration
-- [View Implementation Details](https://github.com/aliveevie/rijista/pull/1)
+### Tomo Wallet SDK
+- Native integration with Tomo Wallet for secure transactions
+- Enhanced wallet connectivity and management
+- Streamlined user authentication process
+- [View Implementation Details](https://github.com/aliveevie/rijista/tree/Implement-wallet-tomo-sdk)
+- [Demo Video](https://streamable.com/ucyeoe)
 
 ### Yakoa IP Protection
 - Advanced IP protection and validation features
@@ -34,6 +39,7 @@ Rijista integrates with several key partners to provide a comprehensive music IP
 - Integration with Yakoa's protection API for enhanced security
 - Professional error handling and user feedback system
 - [View Implementation Details](https://github.com/aliveevie/rijista/pull/2)
+- [Demo Video](https://streamable.com/53awx7)
 
 ### DeBridge Cross-Chain Integration
 - Seamless asset bridging between different blockchains
@@ -41,12 +47,13 @@ Rijista integrates with several key partners to provide a comprehensive music IP
 - Embedded deBridge widget for easy asset transfers
 - Optimized widget loading and cleanup handling
 - [View Implementation Details](https://github.com/aliveevie/rijista/pull/3)
+- [Demo Video](https://streamable.com/mpmsk8)
 
-### Tomo Wallet SDK
-- Native integration with Tomo Wallet for secure transactions
-- Enhanced wallet connectivity and management
-- Streamlined user authentication process
-- [View Implementation Details](https://github.com/aliveevie/rijista/tree/Implement-wallet-tomo-sdk)
+### Platform Demo
+- Comprehensive demonstration of Rijista's core features
+- User interface walkthrough and functionality showcase
+- End-to-end music IP registration process
+- [Watch Full Demo](https://streamable.com/k5i964)
 
 ## Project Structure
 
@@ -159,3 +166,5 @@ For support, please open an issue in the GitHub repository or contact the develo
 ---
 
 Built with ❤️ for the decentralized music IP ecosystem 
+
+Made with ❤️ by Ibrahim @iabdulkarim472 
